@@ -322,8 +322,8 @@ def t_SNE_plot(Train_LoaderA,Train_LoaderB,net,save_dir,mode):
     features_B = np.zeros((64,))
     # print ('begin init')
 
-    i = 0
-    while i < len(A_iter)-1 and i < len(B_iter)-1:
+    num_iter = min(len(A_iter) - 1, len(B_iter) - 1)
+    for i in tqdm(range(num_iter)):
         # 从两个数据集中获取训练数据
         ct, ct_down2, ct_down4, label, label_down2, label_down4, info_ct = next(A_iter)
         mr, mr_down2, mr_down4, info_mr = next(B_iter)
@@ -339,8 +339,7 @@ def t_SNE_plot(Train_LoaderA,Train_LoaderB,net,save_dir,mode):
         # 将特征向量加入到列表中
         features_A = np.vstack((features_A, feat_ct.cpu().detach().numpy().mean(axis=(2,3)).reshape(ct.size(0),-1)))
         features_B = np.vstack((features_B, feat_mr.cpu().detach().numpy().mean(axis=(2,3)).reshape(mr.size(0),-1)))
-        i = i+1
-        # print (i)
+
 
     # 对特征向量进行t-SNE降维
     tsne = TSNE()
