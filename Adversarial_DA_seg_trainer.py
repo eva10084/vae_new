@@ -527,8 +527,11 @@ def main():
             torch.save(target_down2_vaedecoder.state_dict(), os.path.join(SAVE_DIR, 'decoderBdown2_param.pkl'))
             torch.save(target_down4_vaedecoder.state_dict(), os.path.join(SAVE_DIR, 'decoderBdown4_param.pkl'))
 
-        if epoch in [10, 20, 30, 40, 45]:
-            torch.save(vaeencoder.state_dict(), SAVE_DIR+'/'+str(epoch)+'encoder_param.pkl')
+        if criter >= 0.67:
+            torch.save(vaeencoder.state_dict(), SAVE_DIR + '/' + str(criter) + '_encoder_param.pkl')
+
+        # if epoch in [10, 20, 30, 40, 45]:
+        #     torch.save(vaeencoder.state_dict(), SAVE_DIR+'/'+str(epoch)+'encoder_param.pkl')
 
 
 
