@@ -22,7 +22,7 @@ import seaborn as sns
 sns.set(rc={'figure.figsize':(11.7,8.27)})
 palette = sns.color_palette("bright", 2)
 
-TestDir = 'Dataset/Patch192/LGE_test/'
+TestDir = 'Dataset/small_Patch192/LGE_test/'
 model_dir = 'experiments/loss_tSNE/save_param0.001/encoder_param.pkl'
 
 if torch.cuda.is_available():

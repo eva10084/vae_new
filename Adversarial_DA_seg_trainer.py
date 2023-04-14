@@ -36,7 +36,7 @@ ADA_DisLR = 1e-4  # 代表判别器的学习率
 WEIGHT_DECAY =1e-5   # 代表Adam优化器的权重衰减系数
 WORKERSNUM = 0   # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/loss_tSNE'   # 返回上一级目录，代表实验结果保存的路径
-dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
+dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 source = 'C0'
 target = 'LGE'
 ValiDir = dataset_dir +'/'+target+'_Vali/'  # 代表验证集数据所在的路径，mri测试集
@@ -287,7 +287,7 @@ def SegNet_vali(dir, SegNet, gate,epoch, save_DIR): # gate=0
         mean_surface_distance = np.mean(total_surface_distance[1:], axis=0)
         std_surface_distance = np.std(total_surface_distance[1:], axis=0)
 
-        print(dir)
+        # print(dir)
         # 判断是验证集还是测试集
         if 'Vali' in dir:
             criterion = np.mean(meanDice[1:])
@@ -513,8 +513,7 @@ def main():
         vaeencoder.eval()
         # 进行模型测试，并记录模型性能，调用程序
         criter =SegNet_vali(ValiDir, vaeencoder,0, epoch, SAVE_DIR)
-        print(criter)
-
+        print('criter : %.6f', criter)
         # 如果当前性能最优，则记录当前的性能指标和训练轮次
         if criter > criterion:
             best_epoch = epoch
