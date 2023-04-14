@@ -528,6 +528,12 @@ def main():
             torch.save(target_down2_vaedecoder.state_dict(), os.path.join(SAVE_DIR, 'decoderBdown2_param.pkl'))
             torch.save(target_down4_vaedecoder.state_dict(), os.path.join(SAVE_DIR, 'decoderBdown4_param.pkl'))
 
+        if epoch in [10, 20, 30, 40, 45]:
+            torch.save(vaeencoder.state_dict(), SAVE_DIR+'/'+str(epoch)+'encoder_param.pkl')
+
+
+
+    torch.save(vaeencoder.state_dict(), SAVE_DIR + '/' + 'final_' + 'encoder_param.pkl')
     print('\n')
     print('best epoch:%d' % (best_epoch))
     # 该段代码是将模型训练过程中得到的最佳模型的相关信息写入文件，包含best epoch和 VAE的loss
