@@ -348,12 +348,16 @@ def t_SNE_plot(Train_LoaderA,Train_LoaderB,net,save_dir,mode):
     X_embedded = tsne.fit_transform(np.concatenate((features_A[1:],features_B[1:]),axis=0))
     # print ('finish mapping')
     Y = ['source']*features_A[1:].shape[0]+['target']*features_A[1:].shape[0]
-    #Y = ['source'] * 500 + ['target'] * 500
+    # Y = ['source'] * 500 + ['target'] * 500
 
     # 可视化结果，有问题
+    tag = features_A[1:].shape[0]
+    colors = ['green' if y == 'source' else 'blue' for y in Y]
+    plt.scatter(X_embedded[:tag, 0], X_embedded[:tag, 1], c=colors[:tag], legend='full', palette=palette)
+    plt.scatter(X_embedded[tag:, 0], X_embedded[tag:, 1], c=colors[tag:], legend='full', palette=palette)
     # sns.scatterplot(X_embedded[:, 0], X_embedded[:, 1], hue=Y, legend='full', palette=palette)
-    # plt.savefig(os.path.join(save_dir, '{}.png'.format(mode)))
-    # plt.close()
+    plt.savefig(os.path.join(save_dir, '{}.png'.format(mode)))
+    plt.close()
     #
     # # 将t-SNE结果保存到文件中
     # np.save(os.path.join(save_dir, '{}_X.npy'.format(mode)), X_embedded)
