@@ -36,6 +36,7 @@ ADA_DisLR = 1e-4  # 代表判别器的学习率
 WEIGHT_DECAY =1e-5   # 代表Adam优化器的权重衰减系数
 WORKERSNUM = 0   # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/loss_tSNE'   # 返回上一级目录，代表实验结果保存的路径
+# prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
 dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 # dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 source = 'C0'
@@ -353,8 +354,8 @@ def t_SNE_plot(Train_LoaderA,Train_LoaderB,net,save_dir,mode):
     # 可视化结果，有问题
     tag = features_A[1:].shape[0]
     colors = ['green' if y == 'source' else 'blue' for y in Y]
-    plt.scatter(X_embedded[:tag, 0], X_embedded[:tag, 1], c=colors[:tag], legend='full', palette=palette)
-    plt.scatter(X_embedded[tag:, 0], X_embedded[tag:, 1], c=colors[tag:], legend='full', palette=palette)
+    plt.scatter(X_embedded[:tag, 0], X_embedded[:tag, 1], c=colors[:tag])
+    plt.scatter(X_embedded[tag:, 0], X_embedded[tag:, 1], c=colors[tag:])
     # sns.scatterplot(X_embedded[:, 0], X_embedded[:, 1], hue=Y, legend='full', palette=palette)
     plt.savefig(os.path.join(save_dir, '{}.png'.format(mode)))
     plt.close()
@@ -546,11 +547,18 @@ def main():
     with open("%s/best_model_information.txt" % (SAVE_DIR), "a") as f:
         f.writelines(["\n\nbest epoch:%d, iter num:%d" % (best_epoch, len(source_vae_loss_list))])
 
-    # 加载指定路径下的模型参数
-    # vaeencoder.load_state_dict(torch.load(os.path.join(SAVE_DIR, 'encoder_param.pkl').replace('\\', '/')))
+    # 加载指定路径下的模型参数,正常
+    # vaeencoder.load_state_dict(torch.load(SAVE_DIR+'/'+'encoder_param.pkl'))
+
+    # vaeencoder.load_state_dict(torch.load(SAVE_DIR+'/'+'encoder_param.pkl', map_location=device))
+    # vaeencoder = vaeencoder.to(device)
+
+    # colab
+    vaeencoder.load_state_dict(torch.load(SAVE_DIR + '/' + 'encoder_param.pkl', map_location=torch.device("cpu")))
+    vaeencoder.to(device)
 
     # 使用DA模型中的编码器vaeencoder对源域和目标域进行编码，然后进行t-SNE可视化，'res_tsne'
-    # t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
+    t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
 
     # 用图表说明loss
     show_loss(np.array(source_vae_loss_list), np.array(source_seg_loss_list),
