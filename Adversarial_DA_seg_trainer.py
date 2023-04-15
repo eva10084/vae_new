@@ -25,7 +25,7 @@ palette = sns.color_palette("bright", 2)
 ''' 生成'''
 '''对抗性_DA_分割器_训练'''
 
-EPOCH = 5  # 轮数
+EPOCH = 30  # 轮数
 KLDLamda = 1.0   # Kullback-Leibler散度的权重
 
 PredLamda=1e3
