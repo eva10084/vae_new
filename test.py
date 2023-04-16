@@ -23,18 +23,19 @@ sns.set(rc={'figure.figsize':(11.7,8.27)})
 palette = sns.color_palette("bright", 2)
 
 TestDir = 'Dataset/small_Patch192/LGE_test/'
-model_dir = 'experiments/loss_tSNE/save_param0.001/encoder_param.pkl'
+model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
+# model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
 
 if torch.cuda.is_available():
     device = torch.device("cuda")  # GPU 可用
 else:
     device = torch.device("cpu")   # 只能使用 CPU
 
-
+slice = 12
 
 def SegNet(dir, SegNet, gate):
-    name = glob.glob(dir + '*.nii*')
-
+    name = glob.glob(dir + '*LGE.nii*')
+    # slice = 6
     SegNet.eval()
 
     for i in range(len(name)):
@@ -42,8 +43,8 @@ def SegNet(dir, SegNet, gate):
         npimg = sitk.GetArrayFromImage(itkimg)
         npimg = npimg.astype(np.float32)
         print(npimg.shape)
-        print(npimg[8, :, :].shape)
-        plt.imshow(npimg[8, :, :], cmap='gray')
+        print(npimg[slice, :, :].shape)
+        plt.imshow(npimg[slice, :, :], cmap='gray')
         plt.show()
         plt.savefig('init.png')
 
@@ -60,17 +61,31 @@ def SegNet(dir, SegNet, gate):
             result[slice:slice+1,:,:]=result0
 
         print(result.shape)
-        print(result[8, :, :].shape)
-        plt.imshow(result[8, :, :], cmap='gray')
+        print(result[slice, :, :].shape)
+        plt.imshow(result[slice, :, :], cmap='gray')
         plt.show()
         plt.savefig('result.png')    
 
 
+def show(dir):
+    name = glob.glob(dir + '*_manual.nii*')
+    # slice = 6
+
+    for i in range(len(name)):
+        itkimg = sitk.ReadImage(name[i].replace('\\', '/'))
+        npimg = sitk.GetArrayFromImage(itkimg)
+        npimg = npimg.astype(np.float32)
+        print(npimg.shape)
+        print(npimg[slice, :, :].shape)
+        plt.imshow(npimg[slice, :, :], cmap='gray')
+        plt.show()
+        plt.savefig('real.png')
 
 
 
 if __name__ == '__main__':
 
-    vaeencoder = VAE().to(device)
-    vaeencoder.load_state_dict(torch.load(model_dir))
-    SegNet(TestDir, vaeencoder, 0)
+    show(TestDir)
+    # vaeencoder = VAE().to(device)
+    # vaeencoder.load_state_dict(torch.load(model_dir))
+    # SegNet(TestDir, vaeencoder, 0)
