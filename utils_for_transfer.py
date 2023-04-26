@@ -36,6 +36,7 @@ def init_conv(conv):
     if conv.bias is not None:
         conv.bias.data.zero_()
 
+# 实现空间注意力机制， 将输入特征图压缩成一个单通道的空间特征图
 class Spatial_Attention(nn.Module):
     def __init__(self, in_channel):
         super(Spatial_Attention, self).__init__()
@@ -43,22 +44,22 @@ class Spatial_Attention(nn.Module):
                                       )
 
     def forward(self, x):
-        actition = self.activate(x)
-        out = torch.mul(x, actition)
+        actition = self.activate(x)  # 压缩后的单通道特征图 actition
+        out = torch.mul(x, actition)  # 压缩后的特征图 actition 和原始的输入特征图 x 进行逐元素乘法操作
 
         return out
 
 class VAE(nn.Module):
     def __init__(self, KERNEL=3,PADDING=1):
         super(VAE, self).__init__()
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.convt1=nn.ConvTranspose2d(1024,512,kernel_size=2,stride=2)
-        self.convt2=nn.ConvTranspose2d(512,256,kernel_size=2,stride=2)
-        self.convt3=nn.ConvTranspose2d(256,128,kernel_size=2,stride=2)
+        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)   # 池化层
+        self.convt1=nn.ConvTranspose2d(1024,512,kernel_size=2,stride=2)   # 上采样层，1014->512
+        self.convt2=nn.ConvTranspose2d(512,256,kernel_size=2,stride=2)    # 对输入特征图进行2倍上采样操作，将每个像素点扩大为2x2的区域
+        self.convt3=nn.ConvTranspose2d(256,128,kernel_size=2,stride=2)    #  并使用反卷积操作来填充像素
         self.convt4=nn.ConvTranspose2d(128,64,kernel_size=2,stride=2)
-
-        self.conv_seq1 = nn.Sequential( nn.Conv2d(1,64,kernel_size=KERNEL,padding=PADDING),
-                                        nn.InstanceNorm2d(64),
+# 卷积
+        self.conv_seq1 = nn.Sequential( nn.Conv2d(1,64,kernel_size=KERNEL,padding=PADDING),   # 卷积层，1->64
+                                        nn.InstanceNorm2d(64),  # 例归一化层，对神经网络中的特征图进行归一化处理。输入特征图的通道数
                                         nn.ReLU(inplace=True),
                                         nn.Conv2d(64,64,kernel_size=KERNEL,padding=PADDING),
                                         nn.InstanceNorm2d(64),
@@ -88,23 +89,23 @@ class VAE(nn.Module):
                                        nn.InstanceNorm2d(1024),
                                        nn.ReLU(inplace=True))
 
-
+# 反卷积
         self.deconv_seq1 = nn.Sequential(nn.Conv2d(1024, 512, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(512),
                                        nn.ReLU(inplace=True),
-                                       nn.Dropout2d(p=0.5),
+                                       nn.Dropout2d(p=0.5),  # 训练过程中随机删除输入的一部分神经元，以减少过拟合的风险
                                        nn.Conv2d(512, 512, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(512),
                                        nn.ReLU(inplace=True))
         self.deconv_seq2 = nn.Sequential(nn.Conv2d(512, 256, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(256),
                                        nn.ReLU(inplace=True),
-                                         nn.Conv2d(256, 256, kernel_size=KERNEL, padding=PADDING),
-                                         nn.InstanceNorm2d(256),
-                                         nn.ReLU(inplace=True),
+                                       nn.Conv2d(256, 256, kernel_size=KERNEL, padding=PADDING),
+                                       nn.InstanceNorm2d(256),
+                                       nn.ReLU(inplace=True),
                                         )
-
-        self.down4fc1 = nn.Sequential(Spatial_Attention(256),
+# 下4采样，其中seg割成4类
+        self.down4fc1 = nn.Sequential(Spatial_Attention(256),   # 对中间层特征图进行空间注意力机制的加强。
                                       nn.InstanceNorm2d(256),
                                       nn.Tanh())
         self.down4fc2 = nn.Sequential(nn.Conv2d(256, 256, kernel_size=KERNEL, padding=PADDING),
@@ -119,7 +120,7 @@ class VAE(nn.Module):
                                        nn.Conv2d(128, 128, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(128),
                                        nn.ReLU(inplace=True))
-
+# 下2采样，其中seg割成4类
         self.down2fc1 = nn.Sequential(Spatial_Attention(128),
                                       nn.InstanceNorm2d(128),
                                       nn.Tanh())
@@ -135,7 +136,7 @@ class VAE(nn.Module):
                                        nn.Conv2d(64, 64, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(64),
                                        nn.ReLU(inplace=True),)
-
+# deconv_seq5分成4类
         self.fc1 = nn.Sequential(Spatial_Attention(64),
                                  nn.InstanceNorm2d(64),
                                  nn.Tanh())
@@ -147,16 +148,17 @@ class VAE(nn.Module):
                                        nn.InstanceNorm2d(64),
                                        nn.ReLU(inplace=True),
                                        nn.Conv2d(64, 4, kernel_size=KERNEL, padding=PADDING))
-        self.soft = nn.Softmax2d()
-
-        self.upsample2 = nn.Upsample(scale_factor=2,mode='bilinear')
+        self.soft = nn.Softmax2d()  # 归一化操作，可以将特征图中每个位置的值归一化到 [0,1] 区间内
+# 上采样，segfusion割成4类
+        self.upsample2 = nn.Upsample(scale_factor=2,mode='bilinear')  # 双线性插值，并将特征图的尺寸沿着宽和高的维度分别扩大了2倍
         self.upsample4 = nn.Upsample(scale_factor=4,mode='bilinear')
+        # 分割融合
         self.segfusion = nn.Sequential(nn.Conv2d(4*3, 12, kernel_size=KERNEL, padding=PADDING),
                                        nn.InstanceNorm2d(12),
                                        nn.ReLU(inplace=True),
                                        nn.Conv2d(4 * 3, 4, kernel_size=KERNEL, padding=PADDING),)
 
-
+# 计算VAE的loss：重建损失加KL
     def reparameterize(self, mu, logvar,gate):
         std = logvar.mul(0.5).exp_()
         # return torch.normal(mu, std)
@@ -164,19 +166,20 @@ class VAE(nn.Module):
         z = mu + std * esp*gate
         return z
 
-    def bottleneck(self, h,gate):
+# 3中不同的fc，返回loss，均值，方差的log
+    def bottleneck(self, h, gate):
         mu, logvar = self.fc1(h), self.fc2(h)
-        z = self.reparameterize(mu, logvar,gate)
+        z = self.reparameterize(mu, logvar, gate)
         return z, mu, logvar
 
-    def bottleneckdown2(self, h,gate):
+    def bottleneckdown2(self, h, gate):
         mu, logvar = self.down2fc1(h), self.down2fc2(h)
-        z = self.reparameterize(mu, logvar,gate)
+        z = self.reparameterize(mu, logvar, gate)
         return z, mu, logvar
 
-    def bottleneckdown4(self, h,gate):
+    def bottleneckdown4(self, h, gate):
         mu, logvar = self.down4fc1(h), self.down4fc2(h)
-        z = self.reparameterize(mu, logvar,gate)
+        z = self.reparameterize(mu, logvar, gate)
         return z, mu, logvar
 
     def encode(self, x,gate):
@@ -225,7 +228,7 @@ class VAEDecode(nn.Module):
 
         self.decoderB=nn.Sequential(
             nn.Conv2d(64+4, 128, kernel_size=KERNEL, padding=PADDING),
-            nn.BatchNorm2d(128),
+            nn.BatchNorm2d(128),  # 输出进行归一化
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, kernel_size=KERNEL, padding=PADDING),
             nn.BatchNorm2d(128),
@@ -312,6 +315,7 @@ class VAEDecode_down4(nn.Module):
         z=self.decoderB(torch.cat((z,y),dim=1))
         return z
 
+# 判别器
 class Discriminator(nn.Module):
     def __init__(self, KERNEL=3, PADDING=1):
         super(Discriminator, self).__init__()
@@ -352,8 +356,8 @@ class Discriminator(nn.Module):
 
     def forward(self, y):
         out= self.decoder(y)
-        out = self.linear_seq(out.view(out.size(0),-1))
-        out = out.mean()
+        out = self.linear_seq(out.view(out.size(0),-1))  # 将卷积层或池化层的输出展平成一维张量，以便可以将其传递给全连接层
+        out = out.mean()  # 计算张量 out 所有元素的平均值
         return out
 
 class target_TrainSet(Dataset):
@@ -476,26 +480,18 @@ class source_TrainSet(Dataset):
 
 
 
-
+# Dice系数越接近1，表示模型的分割效果越好
 def dice_compute(pred, groundtruth):           #batchsize*channel*W*W
-    # for j in range(pred.shape[0]):
-    #     for i in range(pred.shape[1]):
-    #         if np.sum(pred[j,i,:,:])==0 and np.sum(groundtruth[j,i,:,:])==0:
-    #             pred[j, i, :, :]=pred[j, i, :, :]+1
-    #             groundtruth[j, i, :, :]=groundtruth[j,i,:,:]+1
-    #
-    # dice = 2*np.sum(pred*groundtruth,axis=(2,3),dtype=np.float16)/(np.sum(pred,axis=(2,3),dtype=np.float16)+np.sum(groundtruth,axis=(2,3),dtype=np.float16))
     dice=[]
     for i in range(4):
         dice_i = 2*(np.sum((pred==i)*(groundtruth==i),dtype=np.float32)+0.0001)/(np.sum(pred==i,dtype=np.float32)+np.sum(groundtruth==i,dtype=np.float32)+0.0001)
-        dice=dice+[dice_i]
+        dice = dice+[dice_i]
 
-
-    return np.array(dice,dtype=np.float32)
-
+    return np.array(dice, dtype=np.float32)
 
 
 
+# IOU也越接近1，表示模型的分割效果越好，类似于dice
 def IOU_compute(pred, groundtruth):
     iou=[]
     for i in range(4):
@@ -506,12 +502,16 @@ def IOU_compute(pred, groundtruth):
     return np.array(iou,dtype=np.float32)
 
 
-def Hausdorff_compute(pred,groundtruth,spacing):
+# 广泛应用于评估模型对于分割边缘和形状的准确性，越小，分割效果越好
+# 输入原图地址和目标地址
+# 参数spacing是一个元组或列表，用于指定各个维度上的像素间距
+# 例如，spacing=(1,1,1)表示三维图像中各个维度上的像素间距均为1，
+def Hausdorff_compute(pred, groundtruth, spacing):
     pred = np.squeeze(pred)
     groundtruth = np.squeeze(groundtruth)
 
     ITKPred = sitk.GetImageFromArray(pred, isVector=False)
-    ITKPred.SetSpacing(spacing)
+    ITKPred.SetSpacing(spacing)  # SetSpacing方法用于设置图像的像素间距
     ITKTrue = sitk.GetImageFromArray(groundtruth, isVector=False)
     ITKTrue.SetSpacing(spacing)
 
@@ -594,13 +594,16 @@ def multi_dice_iou_compute(pred,label):
     dice = dice_compute(nplabs, label.cpu().numpy())
     Iou = IOU_compute(nplabs, label.cpu().numpy())
 
-    return dice,Iou
+    return dice, Iou
 
-
+# 交叉熵loss
 class BalancedBCELoss(nn.Module):
     def __init__(self,target):
         super(BalancedBCELoss,self).__init__()
         self.eps=1e-6
+        # 计算一个加权的交叉熵损失函数中的权重
+        # torch.sum(target==0)表示标签中像素值为0的数量
+        # torch.reciprocal表示取倒数，即求该类别像素所占的比例。
         weight = torch.tensor([torch.reciprocal(torch.sum(target==0).float()+self.eps),torch.reciprocal(torch.sum(target==1).float()+self.eps),torch.reciprocal(torch.sum(target==2).float()+self.eps),torch.reciprocal(torch.sum(target==3).float()+self.eps)])
         self.criterion = nn.CrossEntropyLoss(weight)
 
@@ -645,6 +648,7 @@ class Gaussian_Distance(nn.Module):
         super(Gaussian_Distance, self).__init__()
         self.kern=kern
         self.avgpool = nn.AvgPool2d(kernel_size=kern, stride=kern)
+        # 一个平均池化层，它将输入的特征图按照给定的kernel_size进行划分，对每个划分区域内的数值求平均，然后输出新的特征图。
 
     def forward(self, mu_a,logvar_a,mu_b,logvar_b):
         mu_a = self.avgpool(mu_a)

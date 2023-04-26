@@ -115,12 +115,12 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         # 根据label值的位置将其中的值设为1，构造成one-hot编码
         label_onehot.scatter_(1, label.unsqueeze(dim=1), 1)
 
-        label= label.to(device)
-        # 构造一个大小为[batch_size,4,label_size[1],label_size[2]]的全零张量，然后根据label值的位置将其中的值设为1，构造成one-hot编码
-        label_onehot =torch.FloatTensor(label.size(0), 4,label.size(1),label.size(2)).to(device)
-        label_onehot.zero_()
-        # 根据label值的位置将其中的值设为1，构造成one-hot编码
-        label_onehot.scatter_(1, label.unsqueeze(dim=1), 1)
+        # label= label.to(device)
+        # # 构造一个大小为[batch_size,4,label_size[1],label_size[2]]的全零张量，然后根据label值的位置将其中的值设为1，构造成one-hot编码
+        # label_onehot =torch.FloatTensor(label.size(0), 4,label.size(1),label.size(2)).to(device)
+        # label_onehot.zero_()
+        # # 根据label值的位置将其中的值设为1，构造成one-hot编码
+        # label_onehot.scatter_(1, label.unsqueeze(dim=1), 1)
 
         label_down2= label_down2.to(device)
         label_down2_onehot =torch.FloatTensor(label_down2.size(0), 4,label_down2.size(1),label_down2.size(2)).to(device)
@@ -141,7 +141,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         #infoloss_ct = info_cri(info_pred_ct,info_ct)
 
 
-        # 计算各种loss
+        # 计算各种loss，分割loss，为后序求三个损失做铺垫
         seg_criterian = BalancedBCELoss(label)
         seg_criterian = seg_criterian.to(device)
         segloss_output = seg_criterian(out_ct, label)
@@ -155,6 +155,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         segdown4_criterian = segdown4_criterian.to(device)
         segdown4loss_output = segdown4_criterian(outdown4_ct, label_down4)
 
+# ct重建
         # recon_ct: 重建后的CT图像
         # BCE_ct: CT图像的重建误差，即使用二进制交叉熵计算的CT图像重建误差。
         # KLD_ct: CT图像的KL散度损失，即计算两个概率分布之间的相似性损失，其中一个概率分布为标准正态分布，另一个概率分布为CT图像中的像素值分布。
@@ -176,6 +177,8 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
 
         #infoloss_mr = info_cri(info_pred_mr,info_mr)
 
+
+# mr重建，分为下采样1，2，4情况，分别计算KLD
         recon_mr = decoderB(feat_mr, pred_mr)
         BCE_mr = F.binary_cross_entropy(recon_mr, mr)
         KLD_mr = -0.5 * torch.mean(1 + logvar_mr - mu_mr.pow(2) - logvar_mr.exp())
@@ -193,7 +196,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         distance_down2_loss = DistanceNet(mudown2_ct,logvardown2_ct,mudown2_mr,logvardown2_mr) # 下采样2倍
         distance_down4_loss = DistanceNet(mudown4_ct,logvardown4_ct,mudown4_mr,logvardown4_mr) # 下采样4倍
 
-        # 源域，目标域，差异，三种loss
+        # 源域，目标域，高斯差异，三种loss
         source_loss = 10.0*BCE_ct+kldlamda*KLD_ct+predlamda*(segloss_output+fusionsegloss_output)+10.0*BCE_down2_ct + kldlamda*KLD_down2_ct +predlamda * segdown2loss_output+10.0*BCE_down4_ct + kldlamda*KLD_down4_ct +predlamda * segdown4loss_output#+ infolamda*infoloss_ct
         target_loss = 10.0*BCE_mr+kldlamda*KLD_mr+10.0*BCE_down2_mr + kldlamda*KLD_down2_mr +10.0*BCE_down4_mr + kldlamda*KLD_down4_mr#+infolamda*infoloss_mr
         discrepancy_loss = distance_loss+distance_down2_loss + 1e-1*distance_down4_loss
@@ -204,7 +207,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         target_vae_loss_list.append(1 * (BCE_mr+BCE_down2_mr+BCE_down4_mr+KLD_mr+KLD_down2_mr+KLD_down4_mr).item())
         distance_loss_list.append(1e-5 * discrepancy_loss.item())
 
-        # 上述三者的平衡loss
+        # 上述三者的平衡loss，通过alpha，beta控制
         balanced_loss = source_loss+alpha*target_loss+beta*discrepancy_loss
 
         # 反向传播和更新模型参数
@@ -291,12 +294,13 @@ def SegNet_vali(dir, SegNet, gate,epoch, save_DIR): # gate=0
 
         # print(dir)
         # 判断是验证集还是测试集
-        if 'Vali' in dir:
-            criterion = np.mean(meanDice[1:])
-            phase='validate'
-        else:
-            criterion = np.mean(meanDice[1:])
-            phase='test'
+
+        criterion = np.mean(meanDice[1:])
+        phase='validate'
+
+        print('epoch:%d, meanDice:%.6f, meanIou:%.6f, '\
+              % (epoch, meanDice.tolist(),meanIou.tolist()) )
+
 
         with open("%s/lge_testout_index.txt" % (save_DIR), "a") as f:
             f.writelines(["\n\nepoch:", str(epoch), " ",phase," ", "\n","meanDice:",""\
@@ -489,6 +493,7 @@ def main():
     target_vae_loss_list=[]
     distance_loss_list=[]
 
+    # 训练前的VAE的效果
     # 调用t_SNE_plot函数对数据进行t - SNE降维，并在图像中标记出源域和目标域的样本点，记录为'init_tsne'，进行函数调用
     print ('start init tsne')
     t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'init_tsne')
@@ -517,7 +522,7 @@ def main():
         # 设置为评估模式
         vaeencoder.eval()
         # 进行模型测试，并记录模型性能，调用程序
-        criter =SegNet_vali(ValiDir, vaeencoder,0, epoch, SAVE_DIR)
+        criter =SegNet_vali(ValiDir, vaeencoder, 0, epoch, SAVE_DIR)
         print('criter : %.6f' % criter)
         # 如果当前性能最优，则记录当前的性能指标和训练轮次
         if criter > criterion:
