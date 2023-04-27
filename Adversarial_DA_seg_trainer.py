@@ -35,13 +35,13 @@ ADA_DisLR = 1e-4  # 代表判别器的学习率
 
 WEIGHT_DECAY =1e-5   # 代表Adam优化器的权重衰减系数
 WORKERSNUM = 0   # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
-prefix = 'experiments/loss_tSNE'   # 返回上一级目录，代表实验结果保存的路径
+prefix = 'experiments'   # 返回上一级目录，代表实验结果保存的路径
 # prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
 dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 # dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 source = 'C0'
 target = 'LGE'
-ValiDir = dataset_dir +'/'+target+'_Vali/'  # 代表验证集数据所在的路径，mri测试集
+ValiDir = dataset_dir +'/' +target+'_Vali/'  # 代表验证集数据所在的路径，mri测试集
 BatchSize = 2  # 代表每个批次的样本数
 KERNEL = 4   # 代表卷积核的大小
 
@@ -82,6 +82,10 @@ epoch: 当前的epoch数
 optim: 优化器
 savedir: 保存训练结果的目录
 '''
+
+if not os.path.exists(prefix):
+    os.mkdir(prefix)
+
 def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, Train_LoaderA,Train_LoaderB,encoder,decoderA,decoderAdown2,decoderAdown4,decoderB,decoderBdown2,decoderBdown4,gate,DistanceNet,lr,kldlamda,predlamda,alpha,beta,infolamda,epoch,optim, savedir):
 
     lr = lr*(0.9**(epoch))  # 0.9的epoch幂，在训练过程中逐渐降低学习率，以帮助模型更有效地收敛。
@@ -298,8 +302,8 @@ def SegNet_vali(dir, SegNet, gate,epoch, save_DIR): # gate=0
         criterion = np.mean(meanDice[1:])
         phase='validate'
 
-        print('epoch:%d, meanDice:%.6f, meanIou:%.6f, '\
-              % (epoch, meanDice.tolist(),meanIou.tolist()) )
+        print('epoch:{:d}, meanDice:{:.6f}, meanIou:{:.6f}, '.format(epoch, meanDice.tolist(),meanIou.tolist()) )
+        print('epoch:%d, meanDice:%.6f, meanIou:%.6f, ' % (epoch, meanDice.tolist(), meanIou.tolist()))
 
 
         with open("%s/lge_testout_index.txt" % (save_DIR), "a") as f:
@@ -474,7 +478,7 @@ def main():
     Alpha=1e0
     Beta=1e-3
 
-    SAVE_DIR=prefix+'/save_param'+str(Beta)   # 保存参数路径
+    SAVE_DIR=prefix+'/save_model'   # 保存参数路径
 
     if not os.path.exists(SAVE_DIR):   # 如果保存训练结果的目录不存在，则创建该目录
         os.mkdir(SAVE_DIR)
@@ -552,11 +556,6 @@ def main():
     with open("%s/best_model_information.txt" % (SAVE_DIR), "a") as f:
         f.writelines(["\n\nbest epoch:%d, iter num:%d" % (best_epoch, len(source_vae_loss_list))])
 
-    # 加载指定路径下的模型参数,正常
-    # vaeencoder.load_state_dict(torch.load(SAVE_DIR+'/'+'encoder_param.pkl'))
-
-    # vaeencoder.load_state_dict(torch.load(SAVE_DIR+'/'+'encoder_param.pkl', map_location=device))
-    # vaeencoder = vaeencoder.to(device)
 
     # colab
     vaeencoder.load_state_dict(torch.load(SAVE_DIR + '/' + 'encoder_param.pkl', map_location=torch.device("cpu")))
