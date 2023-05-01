@@ -206,18 +206,14 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
         # 判别器计算损失
         discrim_optimizer.zero_grad()
         source_labels = torch.full((1,), source_label, device=device)
-        target_labels = torch.full((BatchSize,), target_label, device=device)
+        target_labels = torch.full((1,), target_label, device=device)
 
         # print(feat_ct.shape)
         source_outputs = discrim(out_ct).view(-1)
-        # target_outputs = discrim(feat_mr).view(-1)
-        # D_loss = discrim_criter(source_outputs, source_labels) + discrim_criter(target_outputs, target_labels)
-        print(source_outputs, source_labels)
-        print(source_outputs.shape, source_labels.shape)
-        D_loss = discrim_criter(source_outputs.float(), source_labels.float())
-        # print(D_loss)
-        # D_loss.backward()
-        # discrim_optimizer.step()
+        target_outputs = discrim(pred_mr).view(-1)
+        D_loss = discrim_criter(source_outputs.float(), source_labels.float()) + discrim_criter(target_outputs.float(), target_labels.float())
+        D_loss.backward(retain_graph=True)
+        discrim_optimizer.step()
 
         # DistanceNet是一个用于计算两个高斯分布之间KL散度的函数，输入参数为两个高斯分布的均值和方差，输出为它们之间的KL散度，即距离。
         distance_loss = DistanceNet(mu_ct,logvar_ct,mu_mr,logvar_mr)  # 全分辨率
@@ -522,7 +518,7 @@ def main():
     # 训练前的VAE的效果
     # 调用t_SNE_plot函数对数据进行t - SNE降维，并在图像中标记出源域和目标域的样本点，记录为'init_tsne'，进行函数调用
     print ('start init tsne')
-    t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'init_tsne')
+    # t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'init_tsne')
     print ('finish init tsne')
 
     print('\nstart  training')
@@ -590,7 +586,7 @@ def main():
 
     # 使用DA模型中的编码器vaeencoder对源域和目标域进行编码，然后进行t-SNE可视化，'res_tsne'
     print('\nstart res tsne')
-    t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
+    # t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
     print('final res tsne')
 
     # 用图表说明loss

@@ -391,6 +391,7 @@ class Discriminator(nn.Module):
         # print(out.view(out.size(0),-1).shape)
         out = self.linear_seq(out.view(out.size(0),-1))  # 将卷积层或池化层的输出展平成一维张量，以便可以将其传递给全连接层
         out = out.mean()  # 计算张量 out 所有元素的平均值
+        out = out.sigmoid()
         return out
 
 class target_TrainSet(Dataset):
