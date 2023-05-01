@@ -348,8 +348,8 @@ def t_SNE_plot(Train_LoaderA,Train_LoaderB,net,save_dir,mode):
         _, _, _, feat_tar, _, _, _, _, _, _, _, _, _, _, _, _, _  = net(tar, 0.0)
 
         # 将特征向量加入到列表中
-        features_A = np.vstack((features_A, feat_sour.cpu().detach().numpy().mean(axis=(2,3)).reshape(source.size(0),-1)))
-        features_B = np.vstack((features_B, feat_tar.cpu().detach().numpy().mean(axis=(2,3)).reshape(target.size(0),-1)))
+        features_A = np.vstack((features_A, feat_sour.cpu().detach().numpy().mean(axis=(2,3)).reshape(sour.size(0),-1)))
+        features_B = np.vstack((features_B, feat_tar.cpu().detach().numpy().mean(axis=(2,3)).reshape(tar.size(0),-1)))
 
 
     # 对特征向量进行t-SNE降维
