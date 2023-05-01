@@ -25,7 +25,7 @@ palette = sns.color_palette("bright", 2)
 
 TestDir = 'Dataset/small_Patch192/LGE_test/'
 # model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
-model_dir = '0.7219084511200586_encoder_param.pkl'
+model_dir = 'encoder_param.pkl'
 result_save_dir = 'experiments/result_image'
 name = 'patient44_LGE.nii'
 slice = 12
@@ -35,12 +35,11 @@ slice = 12
 if not os.path.exists(result_save_dir):
     os.makedirs(result_save_dir)
 
-# if torch.cuda.is_available():
-#     device = torch.device("cuda")  # GPU 可用
-# else:
-#     device = torch.device("cpu")   # 只能使用 CPU
+if torch.cuda.is_available():
+    device = torch.device("cuda")  # GPU 可用
+else:
+    device = torch.device("cpu")   # 只能使用 CPU
 
-device = torch.device('cpu')
 
 
 def image_to_index(image):

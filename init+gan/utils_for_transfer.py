@@ -31,12 +31,38 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")   # 只能使用 CPU
 
-# device = torch.device("cpu")   # 只能使用 CPU
-
 def init_conv(conv):
     init.xavier_uniform_(conv.weight)
     if conv.bias is not None:
         conv.bias.data.zero_()
+
+# 定义鉴别器
+# class Discriminator(nn.Module):
+#     def __init__(self):
+#         super(Discriminator, self).__init__()
+#         self.conv = nn.Sequential(
+#             nn.Conv2d(1, 64, 4, 2, 1),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(128),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(128, 256, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(256),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(256, 512, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(512),
+#             nn.LeakyReLU(0.2, inplace=True)
+#         )
+#         self.fc = nn.Sequential(
+#             nn.Linear(512*4*4, 1),
+#             nn.Sigmoid()
+#         )
+#
+#     def forward(self, img):
+#         out = self.conv(img)
+#         out = out.view(-1, 512*4*4)
+#         out = self.fc(out)
+#         return out
 
 # 实现空间注意力机制， 将输入特征图压缩成一个单通道的空间特征图
 class Spatial_Attention(nn.Module):
@@ -192,7 +218,6 @@ class VAE(nn.Module):
         out4 = self.conv_seq4(self.maxpool(out3))
         out5 = self.conv_seq5(self.maxpool(out4))
         # out5, _ = self.attention(out5, out5, out5)
-        # print(out5.shape)
 
         deout1 = self.deconv_seq1(torch.cat((self.convt1(out5),out4),1))
         deout2 = self.deconv_seq2(torch.cat((self.convt2(deout1),out3),1))
@@ -352,7 +377,8 @@ class Discriminator(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-        self.linear_seq=nn.Sequential(nn.Linear(32*5*5,256),
+        self.linear_seq=nn.Sequential(nn.Linear(288,256),
+                                      # nn.Linear(32*5*5,256),
                                       nn.ReLU(inplace=True),
                                       nn.Linear(256, 64),
                                       nn.ReLU(inplace=True),
@@ -361,8 +387,11 @@ class Discriminator(nn.Module):
 
     def forward(self, y):
         out= self.decoder(y)
+        # print(out.shape)
+        # print(out.view(out.size(0),-1).shape)
         out = self.linear_seq(out.view(out.size(0),-1))  # 将卷积层或池化层的输出展平成一维张量，以便可以将其传递给全连接层
         out = out.mean()  # 计算张量 out 所有元素的平均值
+        out = out.sigmoid()
         return out
 
 class target_TrainSet(Dataset):
@@ -683,3 +712,6 @@ class Gaussian_Distance(nn.Module):
         loss = vaa+vbb-torch.mul(vab,2.0)
 
         return loss
+
+
+
