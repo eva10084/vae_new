@@ -201,16 +201,23 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
         BCE_down4_mr = F.binary_cross_entropy(recondown4_mr, mr_down4)
         KLD_down4_mr = -0.5 * torch.mean(1 + logvardown4_mr - mudown4_mr.pow(2) - logvardown4_mr.exp())
 
+######################
+        # 判别器计算损失
         # 判别器计算损失
         discrim_optimizer.zero_grad()
-        source_labels = torch.full((BatchSize,), source_label, device=device)
+        source_labels = torch.full((1,), source_label, device=device)
         target_labels = torch.full((BatchSize,), target_label, device=device)
 
-        source_outputs = discrim(feat_ct).view(-1)
-        target_outputs = discrim(feat_mr).view(-1)
-        D_loss = discrim_criter(source_outputs, source_labels) + discrim_criter(target_outputs, target_labels)
-        D_loss.backward()
-        discrim_optimizer.step()
+        # print(feat_ct.shape)
+        source_outputs = discrim(out_ct).view(-1)
+        # target_outputs = discrim(feat_mr).view(-1)
+        # D_loss = discrim_criter(source_outputs, source_labels) + discrim_criter(target_outputs, target_labels)
+        print(source_outputs, source_labels)
+        print(source_outputs.shape, source_labels.shape)
+        D_loss = discrim_criter(source_outputs.float(), source_labels.float())
+        # print(D_loss)
+        # D_loss.backward()
+        # discrim_optimizer.step()
 
         # DistanceNet是一个用于计算两个高斯分布之间KL散度的函数，输入参数为两个高斯分布的均值和方差，输出为它们之间的KL散度，即距离。
         distance_loss = DistanceNet(mu_ct,logvar_ct,mu_mr,logvar_mr)  # 全分辨率
@@ -456,7 +463,7 @@ def model_init():
     target_down4_vaedecoder = target_down4_vaedecoder.to(device)
 
     discrim = Discriminator()  # 判断分割后的图片来自于ct，还是mri
-
+    discrim = discrim.to(device)
 
     # Infonet = InfoNet().to(device)
 

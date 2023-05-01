@@ -37,32 +37,32 @@ def init_conv(conv):
         conv.bias.data.zero_()
 
 # 定义鉴别器
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(1, 64, 4, 2, 1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(128, 256, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(256, 512, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        self.fc = nn.Sequential(
-            nn.Linear(512*4*4, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, img):
-        out = self.conv(img)
-        out = out.view(-1, 512*4*4)
-        out = self.fc(out)
-        return out
+# class Discriminator(nn.Module):
+#     def __init__(self):
+#         super(Discriminator, self).__init__()
+#         self.conv = nn.Sequential(
+#             nn.Conv2d(1, 64, 4, 2, 1),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(128),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(128, 256, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(256),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             nn.Conv2d(256, 512, 4, 2, 1, bias=False),
+#             nn.BatchNorm2d(512),
+#             nn.LeakyReLU(0.2, inplace=True)
+#         )
+#         self.fc = nn.Sequential(
+#             nn.Linear(512*4*4, 1),
+#             nn.Sigmoid()
+#         )
+#
+#     def forward(self, img):
+#         out = self.conv(img)
+#         out = out.view(-1, 512*4*4)
+#         out = self.fc(out)
+#         return out
 
 # 实现空间注意力机制， 将输入特征图压缩成一个单通道的空间特征图
 class Spatial_Attention(nn.Module):
@@ -377,7 +377,8 @@ class Discriminator(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-        self.linear_seq=nn.Sequential(nn.Linear(32*5*5,256),
+        self.linear_seq=nn.Sequential(nn.Linear(288,256),
+                                      # nn.Linear(32*5*5,256),
                                       nn.ReLU(inplace=True),
                                       nn.Linear(256, 64),
                                       nn.ReLU(inplace=True),
@@ -386,6 +387,8 @@ class Discriminator(nn.Module):
 
     def forward(self, y):
         out= self.decoder(y)
+        # print(out.shape)
+        # print(out.view(out.size(0),-1).shape)
         out = self.linear_seq(out.view(out.size(0),-1))  # 将卷积层或池化层的输出展平成一维张量，以便可以将其传递给全连接层
         out = out.mean()  # 计算张量 out 所有元素的平均值
         return out
