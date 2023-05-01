@@ -45,6 +45,11 @@ ValiDir = dataset_dir +'/' +target+'_Vali/'  # 代表验证集数据所在的路
 BatchSize = 2  # 代表每个批次的样本数
 KERNEL = 4   # 代表卷积核的大小
 
+InfoLamda = 1e2
+alpha = 1e0
+beta = 1e-3
+gama = 1e-3
+
 
 if torch.cuda.is_available():
     print("GPU")
@@ -86,7 +91,7 @@ savedir: 保存训练结果的目录
 if not os.path.exists(prefix):
     os.mkdir(prefix)
 
-def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, Train_LoaderA,Train_LoaderB,encoder,decoderA,decoderAdown2,decoderAdown4,decoderB,decoderBdown2,decoderBdown4,gate,DistanceNet,lr,kldlamda,predlamda,alpha,beta,infolamda,epoch,optim, savedir):
+def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, Train_LoaderA,Train_LoaderB,encoder,decoderA,decoderAdown2,decoderAdown4,decoderB,decoderBdown2,decoderBdown4,gate,DistanceNet,lr,kldlamda,predlamda,infolamda,epoch,optim, savedir):
     source_label = 0
     target_label = 1
     lr = lr*(0.9**(epoch))  # 0.9的epoch幂，在训练过程中逐渐降低学习率，以帮助模型更有效地收敛。
@@ -203,12 +208,10 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
 
 ######################
         # 判别器计算损失
-        # 判别器计算损失
         discrim_optimizer.zero_grad()
         source_labels = torch.full((1,), source_label, device=device)
         target_labels = torch.full((1,), target_label, device=device)
 
-        # print(feat_ct.shape)
         source_outputs = discrim(out_ct).view(-1)
         target_outputs = discrim(pred_mr).view(-1)
         D_loss = discrim_criter(source_outputs.float(), source_labels.float()) + discrim_criter(target_outputs.float(), target_labels.float())
@@ -232,7 +235,7 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
         distance_loss_list.append(1e-5 * discrepancy_loss.item())
 
         # 上述三者的平衡loss，通过alpha，beta控制
-        balanced_loss = source_loss+alpha*target_loss+beta*discrepancy_loss
+        balanced_loss = source_loss+alpha*target_loss+beta*discrepancy_loss+gama*D_loss
 
         # 反向传播和更新模型参数
         optim.zero_grad()  # 清空之前所有参数的梯度
@@ -469,10 +472,7 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "3"
     cudnn.benchmark = True
 
-    PredLamda=1e3
-    InfoLamda=1e2
-    Alpha=1e0
-    Beta=1e-3
+
     SAVE_DIR=prefix+'/save_model'   # 保存参数路径
 
     vaeencoder,source_vaedecoder, source_down2_vaedecoder, source_down4_vaedecoder ,target_vaedecoder,target_down2_vaedecoder, target_down4_vaedecoder, discrim= model_init()
@@ -544,7 +544,7 @@ def main():
                   TargetData_loader,vaeencoder,
                   source_vaedecoder,source_down2_vaedecoder,source_down4_vaedecoder,
                   target_vaedecoder,target_down2_vaedecoder,target_down4_vaedecoder,
-                  1.0,DistanceNet,LR,KLDLamda,PredLamda,Alpha,Beta,InfoLamda,epoch,DA_optim, SAVE_DIR)
+                  1.0,DistanceNet,LR,KLDLamda,PredLamda,InfoLamda,epoch,DA_optim, SAVE_DIR)
 
         # 设置为评估模式
         vaeencoder.eval()

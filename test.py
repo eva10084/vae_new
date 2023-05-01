@@ -24,7 +24,8 @@ sns.set(rc={'figure.figsize':(11.7,8.27)})
 palette = sns.color_palette("bright", 2)
 
 TestDir = 'Dataset/small_Patch192/LGE_test/'
-model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
+# model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
+model_dir = 'encoder_param.pkl'
 result_save_dir = 'experiments/result_image'
 name = 'patient44_LGE.nii'
 slice = 12
@@ -173,9 +174,9 @@ def calculate_data(name, slice):
     print("total_Hausdorff:", Hausdorff)
 
 if __name__ == '__main__':
-    # vaeencoder = VAE().to(device)
-    # vaeencoder.load_state_dict(torch.load(model_dir))
-    # SegNet(TestDir, vaeencoder, 0)
-    #
-    # show(TestDir+name, slice)
+    vaeencoder = VAE().to(device)
+    vaeencoder.load_state_dict(torch.load(model_dir))
+    SegNet(TestDir, vaeencoder, 0)
+
+    show(TestDir+name, slice)
     calculate_data(TestDir+name, slice)
