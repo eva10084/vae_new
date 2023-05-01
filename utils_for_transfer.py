@@ -57,6 +57,7 @@ class VAE(nn.Module):
         self.convt2=nn.ConvTranspose2d(512,256,kernel_size=2,stride=2)    # 对输入特征图进行2倍上采样操作，将每个像素点扩大为2x2的区域
         self.convt3=nn.ConvTranspose2d(256,128,kernel_size=2,stride=2)    #  并使用反卷积操作来填充像素
         self.convt4=nn.ConvTranspose2d(128,64,kernel_size=2,stride=2)
+        self.attention = nn.MultiheadAttention(embed_dim=1024, num_heads=8)
 # 卷积
         self.conv_seq1 = nn.Sequential( nn.Conv2d(1,64,kernel_size=KERNEL,padding=PADDING),   # 卷积层，1->64
                                         nn.InstanceNorm2d(64),  # 例归一化层，对神经网络中的特征图进行归一化处理。输入特征图的通道数
@@ -188,6 +189,7 @@ class VAE(nn.Module):
         out3 = self.conv_seq3(self.maxpool(out2))
         out4 = self.conv_seq4(self.maxpool(out3))
         out5 = self.conv_seq5(self.maxpool(out4))
+        # out5, _ = self.attention(out5, out5, out5)
 
         deout1 = self.deconv_seq1(torch.cat((self.convt1(out5),out4),1))
         deout2 = self.deconv_seq2(torch.cat((self.convt2(deout1),out3),1))

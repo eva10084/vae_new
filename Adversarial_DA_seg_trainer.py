@@ -136,7 +136,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         label_down4_onehot.zero_()
         label_down4_onehot.scatter_(1, label_down4.unsqueeze(dim=1), 1)
 
-        # 输入ct，gate
+# 输入ct，首先训练VAE，和源域的三种decoder
         # fusionseg：融合分割结果；feat_ct：在解码器中使用的特征张量
         fusionseg,_, out_ct,feat_ct, mu_ct,logvar_ct, _, outdown2_ct,featdown2_ct, mudown2_ct,logvardown2_ct,_, outdown4_ct,featdown4_ct, mudown4_ct,logvardown4_ct,info_pred_ct= encoder(ct,gate)
         #info_pred_ct = Infonet(info_pred_ct)
@@ -145,7 +145,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         #infoloss_ct = info_cri(info_pred_ct,info_ct)
 
 
-        # 计算各种loss，分割loss，为后序求三个损失做铺垫
+# 计算各种loss，分割loss，为后序求三个损失做铺垫
         seg_criterian = BalancedBCELoss(label)
         seg_criterian = seg_criterian.to(device)
         segloss_output = seg_criterian(out_ct, label)
@@ -159,11 +159,13 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         segdown4_criterian = segdown4_criterian.to(device)
         segdown4loss_output = segdown4_criterian(outdown4_ct, label_down4)
 
+###############
+# 可以计算重建，再加上判别器，对重建进行损失计算
 # ct重建
         # recon_ct: 重建后的CT图像
         # BCE_ct: CT图像的重建误差，即使用二进制交叉熵计算的CT图像重建误差。
         # KLD_ct: CT图像的KL散度损失，即计算两个概率分布之间的相似性损失，其中一个概率分布为标准正态分布，另一个概率分布为CT图像中的像素值分布。
-        recon_ct = decoderA(feat_ct, label_onehot)
+        recon_ct = decoderA(feat_ct, label_onehot)  # feat_ct为64
         BCE_ct = F.binary_cross_entropy(recon_ct, ct)
         KLD_ct = -0.5 * torch.mean(1 + logvar_ct - mu_ct.pow(2) - logvar_ct.exp())
 
@@ -175,7 +177,8 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         BCE_down4_ct = F.binary_cross_entropy(recondown4_ct, ct_down4)
         KLD_down4_ct = -0.5 * torch.mean(1 + logvardown4_ct - mudown4_ct.pow(2) - logvardown4_ct.exp())
 
-        # 输入mri，gate，输出预测结果
+# 输入mri，首先训练VAE，和目标域的三种decoder
+# 输入mri，gate，输出预测结果
         _,pred_mr, _,feat_mr, mu_mr,logvar_mr, preddown2_mr, _,featdown2_mr, mudown2_mr,logvardown2_mr,preddown4_mr, _,featdown4_mr, mudown4_mr,logvardown4_mr,info_pred_mr= encoder(mr,gate)
         #info_pred_mr = Infonet(info_pred_mr)
 
