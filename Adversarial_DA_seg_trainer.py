@@ -218,6 +218,10 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
         D_loss.backward(retain_graph=True)
         discrim_optimizer.step()
 
+        #对应判别器损失
+        G_loss = discrim_criter(source_outputs.float(), target_labels.float()) + discrim_criter(target_outputs.float(), source_labels.float())
+
+
         # DistanceNet是一个用于计算两个高斯分布之间KL散度的函数，输入参数为两个高斯分布的均值和方差，输出为它们之间的KL散度，即距离。
         distance_loss = DistanceNet(mu_ct,logvar_ct,mu_mr,logvar_mr)  # 全分辨率
         distance_down2_loss = DistanceNet(mudown2_ct,logvardown2_ct,mudown2_mr,logvardown2_mr) # 下采样2倍
@@ -234,8 +238,8 @@ def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,s
         target_vae_loss_list.append(1 * (BCE_mr+BCE_down2_mr+BCE_down4_mr+KLD_mr+KLD_down2_mr+KLD_down4_mr).item())
         distance_loss_list.append(1e-5 * discrepancy_loss.item())
 
-        # 上述三者的平衡loss，通过alpha，beta控制
-        balanced_loss = source_loss+alpha*target_loss+beta*discrepancy_loss+gama*D_loss
+        # 上述三者的平衡loss，通过alpha，beta控制 新增生成器损失
+        balanced_loss = source_loss+alpha*target_loss+beta*discrepancy_loss+gama*G_loss
 
         # 反向传播和更新模型参数
         optim.zero_grad()  # 清空之前所有参数的梯度
