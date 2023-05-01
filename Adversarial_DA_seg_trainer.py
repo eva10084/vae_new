@@ -86,8 +86,9 @@ savedir: 保存训练结果的目录
 if not os.path.exists(prefix):
     os.mkdir(prefix)
 
-def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, Train_LoaderA,Train_LoaderB,encoder,decoderA,decoderAdown2,decoderAdown4,decoderB,decoderBdown2,decoderBdown4,gate,DistanceNet,lr,kldlamda,predlamda,alpha,beta,infolamda,epoch,optim, savedir):
-
+def ADA_Train(discrim, discrim_criter, discrim_optimizer, source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, Train_LoaderA,Train_LoaderB,encoder,decoderA,decoderAdown2,decoderAdown4,decoderB,decoderBdown2,decoderBdown4,gate,DistanceNet,lr,kldlamda,predlamda,alpha,beta,infolamda,epoch,optim, savedir):
+    source_label = 0
+    target_label = 1
     lr = lr*(0.9**(epoch))  # 0.9的epoch幂，在训练过程中逐渐降低学习率，以帮助模型更有效地收敛。
     for param_group in optim.param_groups:
         param_group['lr'] = lr
@@ -159,6 +160,8 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         segdown4_criterian = segdown4_criterian.to(device)
         segdown4loss_output = segdown4_criterian(outdown4_ct, label_down4)
 
+
+
 ###############
 # 可以计算重建，再加上判别器，对重建进行损失计算
 # ct重建
@@ -169,7 +172,7 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         BCE_ct = F.binary_cross_entropy(recon_ct, ct)
         KLD_ct = -0.5 * torch.mean(1 + logvar_ct - mu_ct.pow(2) - logvar_ct.exp())
 
-        recondown2_ct=decoderAdown2(featdown2_ct,label_down2_onehot)
+        recondown2_ct=decoderAdown2(featdown2_ct, label_down2_onehot)
         BCE_down2_ct = F.binary_cross_entropy(recondown2_ct, ct_down2)
         KLD_down2_ct = -0.5 * torch.mean(1 + logvardown2_ct - mudown2_ct.pow(2) - logvardown2_ct.exp())
 
@@ -197,6 +200,17 @@ def ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,dis
         recondown4_mr = decoderBdown4(featdown4_mr,preddown4_mr)
         BCE_down4_mr = F.binary_cross_entropy(recondown4_mr, mr_down4)
         KLD_down4_mr = -0.5 * torch.mean(1 + logvardown4_mr - mudown4_mr.pow(2) - logvardown4_mr.exp())
+
+        # 判别器计算损失
+        discrim_optimizer.zero_grad()
+        source_labels = torch.full((BatchSize,), source_label, device=device)
+        target_labels = torch.full((BatchSize,), target_label, device=device)
+
+        source_outputs = discrim(feat_ct).view(-1)
+        target_outputs = discrim(feat_mr).view(-1)
+        D_loss = discrim_criter(source_outputs, source_labels) + discrim_criter(target_outputs, target_labels)
+        D_loss.backward()
+        discrim_optimizer.step()
 
         # DistanceNet是一个用于计算两个高斯分布之间KL散度的函数，输入参数为两个高斯分布的均值和方差，输出为它们之间的KL散度，即距离。
         distance_loss = DistanceNet(mu_ct,logvar_ct,mu_mr,logvar_mr)  # 全分辨率
@@ -441,9 +455,12 @@ def model_init():
     target_down4_vaedecoder = VAEDecode_down4()
     target_down4_vaedecoder = target_down4_vaedecoder.to(device)
 
+    discrim = Discriminator()  # 判断分割后的图片来自于ct，还是mri
+
+
     # Infonet = InfoNet().to(device)
 
-    return vaeencoder, source_vaedecoder, source_down2_vaedecoder, source_down4_vaedecoder ,target_vaedecoder,target_down2_vaedecoder, target_down4_vaedecoder
+    return vaeencoder, source_vaedecoder, source_down2_vaedecoder, source_down4_vaedecoder ,target_vaedecoder,target_down2_vaedecoder, target_down4_vaedecoder,discrim
 
 def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "3"
@@ -455,7 +472,7 @@ def main():
     Beta=1e-3
     SAVE_DIR=prefix+'/save_model'   # 保存参数路径
 
-    vaeencoder,source_vaedecoder, source_down2_vaedecoder, source_down4_vaedecoder ,target_vaedecoder,target_down2_vaedecoder, target_down4_vaedecoder= model_init()
+    vaeencoder,source_vaedecoder, source_down2_vaedecoder, source_down4_vaedecoder ,target_vaedecoder,target_down2_vaedecoder, target_down4_vaedecoder, discrim= model_init()
 
 
     # 定义高斯距离网络模型
@@ -487,6 +504,7 @@ def main():
     target_vaedecoder.apply(init_weights)
     target_down2_vaedecoder.apply(init_weights)
     target_down4_vaedecoder.apply(init_weights)
+    discrim.apply(init_weights)
 
     # 创建用于记录训练过程中的损失函数的列表，包括源域和目标域的VAE损失、源域的分割损失和距离损失
     source_vae_loss_list=[]
@@ -503,6 +521,9 @@ def main():
     print('\nstart  training')
     criterion = 0  # 最好的性能
     best_epoch = 0  # 最好的轮数
+
+    discrim_criter = nn.BCELoss()
+    discrim_optimizer = optim.Adam(discrim.parameters(), lr=1e-3)
     for epoch in range(EPOCH):
         # 设置为训练模式
         vaeencoder.train()
@@ -512,9 +533,11 @@ def main():
         target_vaedecoder.train()
         target_down2_vaedecoder.train()
         target_down4_vaedecoder.train()
+        discrim.train()
 
         # 进行训练，调用程序
-        ADA_Train(source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, SourceData_loader,
+        ADA_Train(discrim, discrim_criter, discrim_optimizer,
+                  source_vae_loss_list,source_seg_loss_list,target_vae_loss_list,distance_loss_list, SourceData_loader,
                   TargetData_loader,vaeencoder,
                   source_vaedecoder,source_down2_vaedecoder,source_down4_vaedecoder,
                   target_vaedecoder,target_down2_vaedecoder,target_down4_vaedecoder,

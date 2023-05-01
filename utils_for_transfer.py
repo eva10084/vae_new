@@ -36,6 +36,34 @@ def init_conv(conv):
     if conv.bias is not None:
         conv.bias.data.zero_()
 
+# 定义鉴别器
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 64, 4, 2, 1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(128, 256, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(256, 512, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(512*4*4, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, img):
+        out = self.conv(img)
+        out = out.view(-1, 512*4*4)
+        out = self.fc(out)
+        return out
+
 # 实现空间注意力机制， 将输入特征图压缩成一个单通道的空间特征图
 class Spatial_Attention(nn.Module):
     def __init__(self, in_channel):
