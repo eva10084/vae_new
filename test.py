@@ -1,19 +1,5 @@
 import torch
 torch.set_printoptions(profile="full")
-from torch import nn
-from torch.utils.data import Dataset
-import os
-import math
-import SimpleITK as sitk
-import nibabel as nib
-import numpy as np
-import glob
-from torch.utils.data import DataLoader
-from torch.nn import DataParallel
-import torch.nn.functional as F
-from tqdm import tqdm
-from torch.backends import cudnn
-from torch import optim
 from utils_for_transfer import *
 from scipy.spatial.distance import directed_hausdorff
 import matplotlib
@@ -25,22 +11,22 @@ palette = sns.color_palette("bright", 2)
 
 TestDir = 'Dataset/small_Patch192/LGE_test/'
 # model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
-model_dir = '0.7219084511200586_encoder_param.pkl'
+# model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
+model_dir = 'encoder_param.pkl'
 result_save_dir = 'experiments/result_image'
 name = 'patient44_LGE.nii'
 slice = 12
 
-# model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
+
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+
+# device = torch.device("cpu")
 
 if not os.path.exists(result_save_dir):
     os.makedirs(result_save_dir)
-
-# if torch.cuda.is_available():
-#     device = torch.device("cuda")  # GPU 可用
-# else:
-#     device = torch.device("cpu")   # 只能使用 CPU
-
-device = torch.device('cpu')
 
 
 def image_to_index(image):
@@ -114,33 +100,22 @@ def show(name, slice):
     itkimg = sitk.ReadImage(name)
     npimg = sitk.GetArrayFromImage(itkimg)
     npimg = npimg.astype(np.float32)
-    # print('init:')
-    # print(npimg.shape)
-    # print(npimg[slice, :, :].shape)
     axs[0].imshow(npimg[slice, :, :], cmap='gray')
     axs[0].set_title('init')
-
 
     # 预测LGE
     itres = sitk.ReadImage(result_save_dir+ '/res_'+name.split('/')[-1])
     npres = sitk.GetArrayFromImage(itres)
     npres = npres.astype(np.float32)
     npres = index_to_image(npres)
-    # print('res:')
-    # print(npres.shape)
-    # print(npres[slice, :, :].shape)
     axs[1].imshow(npres[slice, :, :], cmap='gray')
     axs[1].set_title('res')
-
 
     # 标注
     lab = name.replace('.nii', '_manual.nii')
     itklab = sitk.ReadImage(lab)
     nplab = sitk.GetArrayFromImage(itklab)
     nplab = nplab.astype(np.float32)
-    # print('real:')
-    # print(nplab.shape)
-    # print(nplab[slice, :, :].shape)
     axs[2].imshow(nplab[slice, :, :], cmap='gray')
     axs[2].set_title('real')
 
@@ -154,8 +129,6 @@ def calculate_data(name, slice):
     npres = sitk.GetArrayFromImage(itres)
     npres = npres.astype(np.float32)
     # [print(i) for i in npres[slice, :, :]]
-
-    # print("ok")
 
     # 标注
     lab = name.replace('.nii', '_manual.nii')
