@@ -16,6 +16,7 @@ import time
 import random
 from skimage import transform
 import torch.nn.init as init
+import torch.nn.functional as F
 
 
 source = 'C0'
@@ -664,9 +665,9 @@ class Focal_Loss(nn.Module):
         return loss
 
 
-class BoundaryLoss(nn.Module):
+class Boundary_Loss(nn.Module):
     def __init__(self, delta=1.0, reduction='mean'):
-        super(BoundaryLoss, self).__init__()
+        super(Boundary_Loss, self).__init__()
         self.delta = delta
         self.reduction = reduction
 
@@ -693,7 +694,13 @@ class BoundaryLoss(nn.Module):
 
         return loss
 
+def new_loss(inputs, targets):
+    focal_loss = Focal_Loss()
+    boundary_loss = Boundary_Loss()
 
+    loss = 0.9*focal_loss(inputs, targets) + 0.1*boundary_loss(inputs, targets)
+
+    return loss
 
 class Gaussian_Kernel_Function(nn.Module):
     def __init__(self,std):

@@ -71,7 +71,6 @@ def ADA_Train(Infonet, discrim, discrim_criter, discrim_optimizer, source_vae_lo
     for param_group in optim.param_groups:
         param_group['lr'] = lr
 
-    new_loss =  BoundaryLoss()
 
     A_iter = iter(Train_LoaderA)
     B_iter = iter(Train_LoaderB)
@@ -130,11 +129,11 @@ def ADA_Train(Infonet, discrim, discrim_criter, discrim_optimizer, source_vae_lo
         KLD_ct = -0.5 * torch.mean(1 + logvar_ct - mu_ct.pow(2) - logvar_ct.exp())
 
         recondown2_ct=decoderAdown2(featdown2_ct, label_down2_onehot)
-        BCE_down2_ct = F.binary_cross_entropy(recondown2_ct, ct_down2)
+        BCE_down2_ct = new_loss(recondown2_ct, ct_down2)
         KLD_down2_ct = -0.5 * torch.mean(1 + logvardown2_ct - mudown2_ct.pow(2) - logvardown2_ct.exp())
 
         recondown4_ct=decoderAdown4(featdown4_ct,label_down4_onehot)
-        BCE_down4_ct = F.binary_cross_entropy(recondown4_ct, ct_down4)
+        BCE_down4_ct = new_loss(recondown4_ct, ct_down4)
         KLD_down4_ct = -0.5 * torch.mean(1 + logvardown4_ct - mudown4_ct.pow(2) - logvardown4_ct.exp())
 
         _,pred_mr, _,feat_mr, mu_mr,logvar_mr, preddown2_mr, _,featdown2_mr, mudown2_mr,logvardown2_mr,preddown4_mr, _,featdown4_mr, mudown4_mr,logvardown4_mr,info_pred_mr= encoder(mr,gate)
@@ -143,15 +142,15 @@ def ADA_Train(Infonet, discrim, discrim_criter, discrim_optimizer, source_vae_lo
 
 
         recon_mr = decoderB(feat_mr, pred_mr)
-        BCE_mr = F.binary_cross_entropy(recon_mr, mr)
+        BCE_mr = new_loss(recon_mr, mr)
         KLD_mr = -0.5 * torch.mean(1 + logvar_mr - mu_mr.pow(2) - logvar_mr.exp())
 
         recondown2_mr = decoderBdown2(featdown2_mr, preddown2_mr)
-        BCE_down2_mr = F.binary_cross_entropy(recondown2_mr, mr_down2)
+        BCE_down2_mr = new_loss(recondown2_mr, mr_down2)
         KLD_down2_mr = -0.5 * torch.mean(1 + logvardown2_mr - mudown2_mr.pow(2) - logvardown2_mr.exp())
 
         recondown4_mr = decoderBdown4(featdown4_mr,preddown4_mr)
-        BCE_down4_mr = F.binary_cross_entropy(recondown4_mr, mr_down4)
+        BCE_down4_mr = new_loss(recondown4_mr, mr_down4)
         KLD_down4_mr = -0.5 * torch.mean(1 + logvardown4_mr - mudown4_mr.pow(2) - logvardown4_mr.exp())
 
         discrim_optimizer.zero_grad()
