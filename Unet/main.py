@@ -12,14 +12,14 @@ import seaborn as sns
 sns.set(rc={'figure.figsize': (11.7, 8.27)})
 palette = sns.color_palette("bright", 2)
 
-EPOCH = 1  # 轮数
+EPOCH = 50  # 轮数
 
 
 WORKERSNUM = 0  # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
-prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
-# prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-# dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
-dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
+# prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
+prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
+dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
+# dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 
 source = 'C0'  # 训练集
 target = 'LGE'
@@ -28,9 +28,9 @@ target = 'LGE'
 
 SAVE_DIR = prefix + '/result' # 保存参数路径
 
-image_road = 'experiments/valid_image/'
+image_road = 'gdrive/MyDrive/vae/experiments/valid_image/'  # google
 
-BatchSize = 5  # 代表每个批次的样本数
+BatchSize = 10  # 代表每个批次的样本数
 KERNEL = 4  # 代表卷积核的大小
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -77,9 +77,9 @@ def index_to_image(image):
 
 def show(model,epoch):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
-    # name = dataset_dir+'/LGE_test/'+'patient44_LGE.nii'
-    name = dataset_dir + '/C0/' + 'patient1_C0.nii'
-    slice = 6
+    name = dataset_dir+'/LGE_test/'+'patient44_LGE.nii'
+    # name = dataset_dir + '/C0/' + 'patient1_C0.nii'
+    slice = 12
 
 
     # 原图LGE

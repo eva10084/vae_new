@@ -23,8 +23,8 @@ import torch.nn.init as init
 # 目前只能是源域C0，目标域LGE
 
 # source = 'C0'
-train = 'C0'
-# train = 'LGE'
+# train = 'C0'
+train = 'LGE'
 valid = 'LGE_test'
 
 

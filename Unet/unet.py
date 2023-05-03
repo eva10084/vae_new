@@ -10,36 +10,6 @@ else:
 # device = torch.device("cpu")  # 只能使用 CPU
 
 
-# 下采样模块
-class DownSampling(nn.Module):
-    def __init__(self, C):
-        super(DownSampling, self).__init__()
-        self.Down = nn.Sequential(
-            # 使用卷积进行2倍的下采样，通道数不变
-            nn.Conv2d(C, C, 3, 2, 1),
-            nn.LeakyReLU()
-        )
-
-    def forward(self, x):
-        return self.Down(x)
-
-
-# 上采样模块
-class UpSampling(nn.Module):
-
-    def __init__(self, C):
-        super(UpSampling, self).__init__()
-        # 特征图大小扩大2倍，通道数减半
-        self.Up = nn.Conv2d(C, C // 2, 1, 1)
-
-    def forward(self, x, r):
-        # 使用邻近插值进行下采样
-        up = F.interpolate(x, scale_factor=2, mode="nearest")
-        x = self.Up(up)
-        # 拼接，当前上采样的，和之前下采样过程中的
-        return torch.cat((x, r), 1)
-
-
 class Unet(nn.Module):
     def __init__(self, KERNEL=3,PADDING=1):
         super(Unet, self).__init__()

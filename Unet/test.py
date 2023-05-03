@@ -47,22 +47,6 @@ def index_to_image(image):
   return image
 
 
-def dice_compute(pred, groundtruth):
-    dice = []
-    for i in range(4):
-        dice_i = 2*(np.sum((pred==i)*(groundtruth==i),dtype=np.float32)+0.0001)/(np.sum(pred==i,dtype=np.float32)+np.sum(groundtruth==i,dtype=np.float32)+0.0001)
-        dice = dice+[dice_i]
-
-    return np.array(dice, dtype=np.float32)
-
-
-def IOU_compute(pred, groundtruth):
-    iou = []
-    for i in range(4):
-        iou_i = (np.sum((pred==i)*(groundtruth==i),dtype=np.float32)+0.0001)/(np.sum(pred==i,dtype=np.float32)+np.sum(groundtruth==i,dtype=np.float32)-np.sum((pred==i)*(groundtruth==i),dtype=np.float32)+0.0001)
-        iou=iou+[iou_i]
-
-    return np.array(iou,dtype=np.float32)
 
 def hausdorff_compute(pred, groundtruth, classes=4):
     hausdorff = []
@@ -169,7 +153,7 @@ def calculate_data(name, slice):
 
 if __name__ == '__main__':
 
-    model = UNet()
+    model = Unet()
     model.load_state_dict(torch.load(model_dir, map_location=torch.device("cpu")))
     SegNet(TestDir, model.to(device), 0)
 
