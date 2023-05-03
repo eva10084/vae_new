@@ -18,7 +18,7 @@ EPOCH = 1  # 轮数
 WORKERSNUM = 0  # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
 # prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
+dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 # dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 
 source = 'C0'
@@ -240,6 +240,10 @@ def main():
             optimizer.step()
 
             dice = show(model, epoch)
+            mean_dice = (dice[0]+dice[1]+dice[2]+dice[3])/4
+            if mean_dice >= 0.7:
+                torch.save(model.state_dict(), SAVE_DIR + '/dice_' + str(mean_dice) + '.pkl')
+
 
 
         print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}, dice:{dice}")
