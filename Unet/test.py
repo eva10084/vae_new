@@ -14,15 +14,15 @@ sns.set(rc={'figure.figsize': (11.7, 8.27)})
 palette = sns.color_palette("bright", 2)
 
 
-TestDir = 'Dataset/small_Patch192/C0/'
+TestDir = 'Dataset/small_Patch192/LGE_test/'
 
 # model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
 # model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
-model_dir = 'res.pkl'
+model_dir = 'best.pkl'
 
 result_save_dir = 'result_image'
-name = 'patient1_C0.nii'
-slice = 6
+name = 'patient44_LGE.nii'
+slice = 12
 
 if torch.cuda.is_available():
     device = torch.device("cuda")  # GPU 可用
@@ -83,7 +83,8 @@ def hausdorff_compute(pred, groundtruth, classes=4):
     return np.array(hausdorff, dtype=np.float32)
 
 def SegNet(dir, SegNet, gate):
-    name = glob.glob(dir + '*C0.nii*')
+    ###################修改
+    name = glob.glob(dir + '*LGE.nii*')
     SegNet.eval()
 
     for i in range(len(name)):
@@ -173,4 +174,4 @@ if __name__ == '__main__':
     SegNet(TestDir, model.to(device), 0)
 
     show(TestDir + name, slice)
-    # calculate_data(TestDir + name, slice)
+    calculate_data(TestDir + name, slice)

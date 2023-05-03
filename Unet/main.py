@@ -77,8 +77,8 @@ def index_to_image(image):
 
 def show(model,epoch):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
-    name = dataset_dir+'/LGE_test/'+'patient41_LGE.nii'
-    slice = 6
+    name = dataset_dir+'/LGE_test/'+'patient44_LGE.nii'
+    slice = 12
 
     # 原图LGE
     itkimg = sitk.ReadImage(name)
