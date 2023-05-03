@@ -21,7 +21,7 @@ prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存
 dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 # dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 
-source = 'C0'
+source = 'C0'  # 训练集
 target = 'LGE'
 
 # ValiDir = dataset_dir + '/' + target + '_test/'  # 代表验证集数据所在的路径
@@ -77,7 +77,7 @@ def index_to_image(image):
 
 def show(model,epoch):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
-    name = dataset_dir+'/'+source+'/'+'patient1_C0.nii'
+    name = dataset_dir+'/LGE_test/'+'patient41_LGE.nii'
     slice = 6
 
     # 原图LGE

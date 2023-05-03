@@ -41,7 +41,7 @@ class source_TrainSet(Dataset):
         self.imgdir = extra+'/' + train +'/'  # 加文件夹名
 
         # 获取一个路径列表，这些路径是指定目录下所有以 C0.nii 结尾的文件
-        self.imgsname = glob.glob(self.imgdir + '*' + 'C0' + '.nii' + '*')  # 图片
+        self.imgsname = glob.glob(self.imgdir + '*' + train + '.nii' + '*')  # 图片
 
 
         imgs = np.zeros((1,192,192))
