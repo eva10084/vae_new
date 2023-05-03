@@ -133,7 +133,8 @@ def main():
     if not os.path.exists(SAVE_DIR):  # 如果保存训练结果的目录不存在，则创建该目录
         os.mkdir(SAVE_DIR)
 
-
+    criterion = 0
+    best_epoch = 0
     for epoch in range(EPOCH):
         # 设置为训练模式
         model.train()
@@ -154,11 +155,15 @@ def main():
 
         dice = show(model, epoch)
         mean_dice = (dice[0]+dice[1]+dice[2]+dice[3])/4
-        if mean_dice >= 0.7:
-            torch.save(model.state_dict(), SAVE_DIR + '/dice_' + str(mean_dice) + '.pkl')
+        if mean_dice >= criterion:
+            criterion = mean_dice
+            best_epoch = epoch
+            torch.save(model.state_dict(), SAVE_DIR + '/best' + '.pkl')
 
         print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}, dice:{dice}")
         torch.save(model.state_dict(), SAVE_DIR+'/res.pkl')
+
+    print(f"\nbest_epoch: {best_epoch}")
 
 
 
