@@ -139,7 +139,7 @@ class Unet(nn.Module):
                                        nn.Conv2d(4 * 3, 4, kernel_size=KERNEL, padding=PADDING),)
 
 
-    def encode(self, x,gate):
+    def encode(self, x):
         out1 = self.conv_seq1(x)
         out2 = self.conv_seq2(self.maxpool(out1))
         out3 = self.conv_seq3(self.maxpool(out2))
@@ -157,12 +157,12 @@ class Unet(nn.Module):
         return deout2,deout3,deout5
 
 
-    def forward(self, x,gate):
-        deout2,deout3,deout5 = self.encode(x,gate)
+    def forward(self, x):
+        deout2,deout3,deout5 = self.encode(x)
         pred = self.soft(deout5)
         pred2 = self.segdown2_seq(deout2)
         pred3 = self.segdown3_seq(deout3)
-        fusion_seg = self.segfusion(torch.cat((pred,self.upsample2(pred2),self.upsample4(pred3)),dim=1))
+        fusion_seg = self.segfusion(torch.cat((pred,self.upsample4(pred2),self.upsample2(pred3)),dim=1))
 
         return fusion_seg
 

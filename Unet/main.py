@@ -18,8 +18,8 @@ EPOCH = 1  # 轮数
 WORKERSNUM = 0  # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
 # prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
-# dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
+# dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
+dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 
 source = 'C0'  # 训练集
 target = 'LGE'
@@ -77,8 +77,10 @@ def index_to_image(image):
 
 def show(model,epoch):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
-    name = dataset_dir+'/LGE_test/'+'patient44_LGE.nii'
-    slice = 12
+    # name = dataset_dir+'/LGE_test/'+'patient44_LGE.nii'
+    name = dataset_dir + '/C0/' + 'patient1_C0.nii'
+    slice = 6
+
 
     # 原图LGE
     itkimg = sitk.ReadImage(name)
@@ -113,7 +115,7 @@ def show(model,epoch):
 
 def main():
 
-    model = UNet()
+    model = Unet()
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     # optimizer = optim.RMSprop(model.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
@@ -146,8 +148,8 @@ def main():
 
             out = model(image)
 
-            loss = nn.BCELoss()(out.float(), label_onehot.float())
-            # loss = dice_coefficient(out.float(), label_onehot.float())
+            # loss = nn.BCELoss()(out.float(), label_onehot.float())
+            loss = F.cross_entropy(out.float(), label_onehot.float())
 
             optimizer.zero_grad()
             loss.backward()
