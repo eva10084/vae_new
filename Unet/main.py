@@ -1,28 +1,12 @@
 import torch
 torch.set_printoptions(profile='full')
-from torch import nn
-from torch.utils import data
-from torch.utils.data import Dataset
-import os
-import math
-import SimpleITK as sitk
-# import nibabel as nib
-import numpy as np
-import glob
-from torch.utils.data import DataLoader
-from torch.nn import DataParallel
 import torch.nn.functional as F
 from tqdm import tqdm
-from torch.backends import cudnn
-from torch import optim
 from tool import *
 from unet import *
-from torchvision.utils import save_image
 import matplotlib
-
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 import seaborn as sns
 
 sns.set(rc={'figure.figsize': (11.7, 8.27)})
@@ -34,14 +18,17 @@ EPOCH = 1  # 轮数
 WORKERSNUM = 0  # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
 # prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
-# dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
+dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
+# dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
 
 source = 'C0'
 target = 'LGE'
 
-ValiDir = dataset_dir + '/' + target + '_test/'  # 代表验证集数据所在的路径
-SAVE_DIR = prefix + '/result'  # 保存参数路径
+# ValiDir = dataset_dir + '/' + target + '_test/'  # 代表验证集数据所在的路径
+
+SAVE_DIR = prefix + '/result' # 保存参数路径
+
+image_road = 'experiments/valid_image/'
 
 BatchSize = 5  # 代表每个批次的样本数
 KERNEL = 4  # 代表卷积核的大小
@@ -58,6 +45,8 @@ else:
 
 # device = torch.device("cpu")  # 只能使用 CPU
 
+if not os.path.exists(image_road):
+    os.makedirs(image_road)
 
 
 def one_hot(label):
@@ -163,6 +152,41 @@ def SegNet_vali(dir, SegNet, gate,epoch, save_DIR):
                               "", "\n\n","hausdorff_distance, mean_surface_distance, median_surface_distance, std_surface_distance, max_surface_distance:", "\n","mean:", str(mean_surface_distance.tolist()), "\n","std:", str(std_surface_distance.tolist())])
     return criterion
 
+def show(model,epoch):
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
+    name = dataset_dir+'/'+source+'/'+'patient1_C0.nii'
+    slice = 6
+
+    # 原图LGE
+    itkimg = sitk.ReadImage(name)
+    npimg = sitk.GetArrayFromImage(itkimg)
+    npimg = npimg.astype(np.float32)
+    axs[0].imshow(npimg[slice, :, :], cmap='gray')
+    axs[0].set_title('init')
+
+    # 预测LGE
+    data = torch.from_numpy(np.expand_dims(npimg, axis=1)).type(dtype=torch.FloatTensor).to(device)
+    output = model(data[slice:slice + 1, :, :, :])
+    _, result0 = torch.max(output, 1, keepdim=False)
+    result0 = result0.detach().cpu().numpy().squeeze(0)
+    axs[1].imshow(result0 , cmap='gray')
+    axs[1].set_title('result')
+
+   # 标注
+    lab = name.replace('.nii', '_manual.nii')
+    itklab = sitk.ReadImage(lab)
+    nplab = sitk.GetArrayFromImage(itklab)
+    nplab = nplab.astype(np.float32)
+    axs[2].imshow(nplab[slice, :, :], cmap='gray')
+    axs[2].set_title('real')
+
+    road = image_road+str(epoch)+'.png'
+    plt.savefig(road)
+    # plt.show()
+
+    dice = dice_compute(result0, image_to_index(nplab[slice, :, :]))
+    return dice
+
 
 def main():
 
@@ -179,9 +203,9 @@ def main():
                             pin_memory=True, drop_last=True)
 
 # 验证集
-    TargetData = target_TrainSet(dataset_dir)
-    dataloader2 = DataLoader(TargetData, batch_size=BatchSize, num_workers=WORKERSNUM,
-                            pin_memory=True, drop_last=True)
+#     TargetData = target_TrainSet(dataset_dir)
+#     dataloader2 = DataLoader(TargetData, batch_size=BatchSize, num_workers=WORKERSNUM,
+#                             pin_memory=True, drop_last=True)
 
     if not os.path.exists(SAVE_DIR):  # 如果保存训练结果的目录不存在，则创建该目录
         os.mkdir(SAVE_DIR)
@@ -214,8 +238,15 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            # exit()
 
+            dice = show(model, epoch)
+
+
+        print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}, dice:{dice}")
+        torch.save(model.state_dict(), SAVE_DIR+'/res.pkl')
+
+
+'''
             x = image[0]  # 原图
             x_ = index_to_image(from_onehot_to_label(out[0]))  # 运行
             y = index_to_image(label[0])   # 标注
@@ -224,13 +255,6 @@ def main():
             img = torch.stack([x, x_, y], 0)
             save_image(img.cpu(), "kk.png")
             # exit()
-
-        print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}")
-        torch.save(model.state_dict(), 'res7.pkl')
-
-
-'''
-
 '''
 
 if __name__ == '__main__':

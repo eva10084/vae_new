@@ -23,7 +23,7 @@ import torch.nn.init as init
 # 目前只能是源域C0，目标域LGE
 
 # source = 'C0'
-train = 'LGE_Vali'
+train = 'C0'
 valid = 'LGE_test'
 
 
@@ -41,7 +41,7 @@ class source_TrainSet(Dataset):
         self.imgdir = extra+'/' + train +'/'  # 加文件夹名
 
         # 获取一个路径列表，这些路径是指定目录下所有以 C0.nii 结尾的文件
-        self.imgsname = glob.glob(self.imgdir + '*' + 'LGE' + '.nii' + '*')  # 图片
+        self.imgsname = glob.glob(self.imgdir + '*' + 'C0' + '.nii' + '*')  # 图片
 
 
         imgs = np.zeros((1,192,192))
