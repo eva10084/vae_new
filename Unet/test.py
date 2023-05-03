@@ -1,21 +1,14 @@
 import torch
-from torch import nn
-from torch.utils.data import Dataset
-import os
-import math
-import SimpleITK as sitk
-import nibabel as nib
-import numpy as np
-import glob
-from tool import *
+torch.set_printoptions(profile="full")
 from unet import *
-import matplotlib
+from tool import *
 from scipy.spatial.distance import directed_hausdorff
-
-matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 import seaborn as sns
+sns.set(rc={'figure.figsize':(11.7,8.27)})
+palette = sns.color_palette("bright", 2)
 
 sns.set(rc={'figure.figsize': (11.7, 8.27)})
 palette = sns.color_palette("bright", 2)
@@ -23,14 +16,14 @@ palette = sns.color_palette("bright", 2)
 # model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
 
 
-TestDir = 'Dataset/small_Patch192/C0/'
+TestDir = 'Dataset/small_Patch192/LGE_Vali/'
 
 # model_dir = 'experiments/loss_tSNE/model/0.70/0.703438.pkl'
 # model_dir = 'gdrive/MyDrive/vae/experiments/loss_tSNE/save_param0.001/best_model'  # Google云盘
 model_dir = 'res.pkl'
 
 result_save_dir = 'result_image'
-name = 'patient1_C0.nii'
+name = 'patient1_LGE.nii'
 slice = 12
 
 if torch.cuda.is_available():
@@ -106,7 +99,7 @@ def SegNet(dir, SegNet, gate):
 
         # 对每个切片进行操作
         for slice in range(data.size(0)):
-            output,_,_, _, _, _ ,_,_,_,_,_,_,_,_,_,_,_= SegNet(data[slice:slice+1,:,:,:], gate)
+            output = SegNet(data[slice:slice+1,:,:,:])
 
             truemax, result0 = torch.max(output, 1, keepdim=False)
             result0 = result0.detach().cpu().numpy()
@@ -182,4 +175,4 @@ if __name__ == '__main__':
     SegNet(TestDir, model.to(device), 0)
 
     show(TestDir + name, slice)
-    calculate_data(TestDir + name, slice)
+    # calculate_data(TestDir + name, slice)

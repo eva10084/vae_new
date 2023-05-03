@@ -1,5 +1,7 @@
 import torch
+torch.set_printoptions(profile='full')
 from torch import nn
+from torch.utils import data
 from torch.utils.data import Dataset
 import os
 import math
@@ -14,7 +16,7 @@ from tqdm import tqdm
 from torch.backends import cudnn
 from torch import optim
 from tool import *
-from unet import UNet
+from unet import *
 from torchvision.utils import save_image
 import matplotlib
 
@@ -26,13 +28,13 @@ import seaborn as sns
 sns.set(rc={'figure.figsize': (11.7, 8.27)})
 palette = sns.color_palette("bright", 2)
 
-EPOCH = 2  # 轮数
+EPOCH = 1  # 轮数
 
 
 WORKERSNUM = 0  # 代表用于数据加载的进程数  PS 初始为10，只有0时可以运行
 prefix = 'experiments/model'  # 返回上一级目录，代表实验结果保存的路径
 # prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-dataset_dir = 'Dataset/small_Patch192'  # 返回上一级目录，代表数据集所在的路径
+dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 # dataset_dir = 'Dataset/Patch192'  # 返回上一级目录，代表数据集所在的路径
 
 source = 'C0'
@@ -61,18 +63,28 @@ else:
 def one_hot(label):
     label_onehot = torch.nn.functional.one_hot(label, num_classes=4)
     label_onehot = torch.squeeze(label_onehot, dim=1).permute(0, 3, 1, 2)
-    # label_onehot=torch.nn.functional.one_hot(label, 4, dim=1).permute(0, 3, 1, 2)
-    # label_onehot = torch.FloatTensor(label.size(0), 4, label.size(2), label.size(3)).zero_().to("cpu")
-    # # 根据标签值对每个通道进行赋值
-    # label_0 = (label == 0).nonzero()
-    # label_onehot[:, 0, label_0[:, 2], label_0[:, 3]] = 1
-    # label_85 = (label == 85).nonzero()
-    # label_onehot[:, 1, label_85[:, 2], label_85[:, 3]] = 1
-    # label_170 = (label == 170).nonzero()
-    # label_onehot[:, 2, label_170[:, 2], label_170[:, 3]] = 1
-    # label_255 = (label == 255).nonzero()
-    # label_onehot[:, 3, label_255[:, 2], label_255[:, 3]] = 1
     return label_onehot.to(device)
+
+
+def from_onehot_to_label(label_onehot):
+    # print(label_onehot.shape)
+    label = torch.argmax(label_onehot, dim=0).unsqueeze(0)
+    return label
+
+def image_to_index(image):
+  image[image == 0] = 0
+  image[image == 200] = 1
+  image[image == 500] = 2
+  image[image == 600] = 3
+  return image
+
+def index_to_image(image):
+  image[image == 0] = 0
+  image[image == 1] = 0.2
+  image[image == 2] = 0.6
+  image[image == 3] = 1
+  return image
+
 
 # 验证集
 def SegNet_vali(dir, SegNet, gate,epoch, save_DIR):
@@ -156,18 +168,19 @@ def main():
 
     model = UNet()
     model = model.to(device)
-    optimizer = optim.RMSprop(model.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    # optimizer = optim.RMSprop(model.parameters(), lr=1e-3, weight_decay=1e-8, momentum=0.9)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)  # 调整学习率
     # criterion = nn.CrossEntropyLoss()
 
 # 训练集
     SourceData = source_TrainSet(dataset_dir)
-    dataloader1 = DataLoader(SourceData, batch_size=BatchSize, shuffle=True, num_workers=WORKERSNUM,
+    dataloader1 = DataLoader(SourceData, batch_size=BatchSize, num_workers=WORKERSNUM,
                             pin_memory=True, drop_last=True)
 
 # 验证集
     TargetData = target_TrainSet(dataset_dir)
-    dataloader2 = DataLoader(TargetData, batch_size=BatchSize, shuffle=True, num_workers=WORKERSNUM,
+    dataloader2 = DataLoader(TargetData, batch_size=BatchSize, num_workers=WORKERSNUM,
                             pin_memory=True, drop_last=True)
 
     if not os.path.exists(SAVE_DIR):  # 如果保存训练结果的目录不存在，则创建该目录
@@ -175,53 +188,49 @@ def main():
 
     criterion = 0
     best_epoch = 0
-
     for epoch in range(EPOCH):
         # 设置为训练模式
         model.train()
 
         for image, label in tqdm(dataloader1):
             image = image.to(device)
+            # print(image.shape)
+            # [print(i) for i in image[0]]
             label = label.to(device, dtype=torch.int64)  # 需要int64参与运算
+            # print(label.shape)
+            # [print(i) for i in label[0,:,80,80]]
             label_onehot = one_hot(label)
-            # [print(i) for i in label_onehot[0][0]]
-            # print(label_onehot.shape)
-            # exit()
-            out = model(image)
-            # _, out = torch.max(out, dim=1, keepdim=True)   # 将概率变成索引
 
-            # print(image.shape, label_onehot.shape, out.shape)
+            # print(label_onehot.shape)
+            # [print(i) for i in label_onehot[0,:,80,80]]
+
+
+            out = model(image)
+            # print(out.shape)
+            # [print(i) for i in out[0, :, 80, 80]]
             loss = nn.BCELoss()(out.float(), label_onehot.float())
             # loss = dice_coefficient(out.float(), label_onehot.float())
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            # exit()
 
-        model.eval()
-        criter = SegNet_vali(ValiDir, model, 0, epoch, SAVE_DIR)
-        print('criter : %.6f' % criter)
-        if criter > criterion:
-            best_epoch = epoch
-            criterion = criter
-            # 将当前模型参数保存到文件中
-            torch.save(model.state_dict(), os.path.join(SAVE_DIR, 'encoder_param.pkl').replace('\\', '/'))
-
-        if criter >= 0.67:
-            torch.save(model.state_dict(), SAVE_DIR + '/' + str(criter) + '_encoder_param.pkl')
-
-        print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}")
-        if epoch % 1 == 0:
-            torch.save(model.state_dict(), 'res.pkl')
-
-
-'''
-            x = image[0]
-            x_ = out[0]
-            y = label_onehot[0]
+            x = image[0]  # 原图
+            x_ = index_to_image(from_onehot_to_label(out[0]))  # 运行
+            y = index_to_image(label[0])   # 标注
+            # [print(i) for i in y]
             print(x.shape,x_.shape,y.shape)
             img = torch.stack([x, x_, y], 0)
             save_image(img.cpu(), "kk.png")
+            # exit()
+
+        print(f"\nEpoch: {epoch}/{EPOCH}, Loss: {loss}")
+        torch.save(model.state_dict(), 'res7.pkl')
+
+
+'''
+
 '''
 
 if __name__ == '__main__':

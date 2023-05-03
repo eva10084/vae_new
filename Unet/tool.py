@@ -41,7 +41,8 @@ class source_TrainSet(Dataset):
         self.imgdir = extra+'/' + train +'/'  # 加文件夹名
 
         # 获取一个路径列表，这些路径是指定目录下所有以 C0.nii 结尾的文件
-        self.imgsname = glob.glob(self.imgdir + '*' + train + '.nii' + '*')  # 图片
+        self.imgsname = glob.glob(self.imgdir + '*' + 'LGE' + '.nii' + '*')  # 图片
+
 
         imgs = np.zeros((1,192,192))
         labs = np.zeros((1,192,192))
@@ -59,17 +60,6 @@ class source_TrainSet(Dataset):
 
             labs = np.concatenate((labs, nplab), axis=0)
 
-            spacing = itkimg.GetSpacing()[2]  # 获取3D图像的z轴spacing（间距） x、y、z
-            media_slice = int(npimg.shape[0] / 2)   # npimg.shape[0]，每张3D图片按照z周切片的个数，media为中间层
-            for i in range(npimg.shape[0]):  # 这样每张切片图片就会被打上一个属于0-5中某一个类别的标签，便于后续处理和分类。
-                a, _ = divmod((i - media_slice) * spacing, 20.0)
-                info = int(a) + 3
-                if info < 0:
-                    info = 0
-                elif info > 5:
-                    info = 5
-
-                self.info.append(info)
         self.imgs = imgs[1:,:,:]
         self.labs = labs[1:,:,:]
         self.imgs.astype(np.float32)
@@ -91,6 +81,7 @@ class source_TrainSet(Dataset):
 
         # npimg_o=transform.resize(npimg, (80,80 ), order=3,mode='edge', preserve_range=True)
         # nplab_o=transform.resize(nplab, (80,80 ), order=0,mode='edge', preserve_range=True)
+
 
 
         return torch.from_numpy(npimg).unsqueeze(0).type(dtype=torch.FloatTensor), torch.from_numpy(nplab).unsqueeze(0).type(dtype=torch.LongTensor)
@@ -244,4 +235,3 @@ def Hausdorff_compute(pred, groundtruth, spacing):
             surface_distance_results[0,i, 4] = np.max(all_surface_distances)
 
     return overlap_results,surface_distance_results
-
