@@ -86,7 +86,7 @@ def show(model,epoch):
 
     # 预测LGE
     data = torch.from_numpy(np.expand_dims(npimg, axis=1)).type(dtype=torch.FloatTensor).to(device)
-    output = model(data[slice:slice + 1, :, :, :])
+    output,_,_, _, _, _ ,_,_,_,_,_,_,_,_,_,_,_= model(data[slice:slice+1,:,:,:], gate=0)
     _, result0 = torch.max(output, 1, keepdim=False)
     result0 = result0.detach().cpu().numpy().squeeze(0)
     axs[1].imshow(result0 , cmap='gray')
@@ -458,7 +458,7 @@ def main():
 
     # 训练前的VAE的效果
     print ('start init tsne')
-    # t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'init_tsne')
+    t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'init_tsne')
     print ('finish init tsne')
 
     print('\nstart  training')
@@ -523,7 +523,7 @@ def main():
 
     # 使用DA模型中的编码器vaeencoder对源域和目标域进行编码，然后进行t-SNE可视化
     print('\nstart res tsne')
-    # t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
+    t_SNE_plot(SourceData_loader, TargetData_loader, vaeencoder, SAVE_DIR, 'res_tsne')
     print('final res tsne')
 
     show_loss(np.array(source_vae_loss_list), np.array(source_seg_loss_list),
