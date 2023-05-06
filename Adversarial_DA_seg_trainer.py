@@ -48,7 +48,7 @@ KERNEL = 4
 
 alpha = 1e0   # target_loss
 beta = 1e-3   # discrepancy_loss
-gama = 1e0   # G_loss
+gama = 1e1   # G_loss
 infolamda = 1e-1  # infoloss_mr+infoloss_ct
 kldlamda = 1e0
 predlamda = 1e3   #KLD,pre影像source，target的计算

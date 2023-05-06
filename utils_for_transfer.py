@@ -163,7 +163,7 @@ class VAE(nn.Module):
                                        nn.ReLU(inplace=True),
                                         )
 
-        self.down4fc1 = nn.Sequential(Spatial_Attention(256),   # 对中间层特征图进行空间注意力机制的加强。
+        self.down4fc1 = nn.Sequential(CBAM_Attention(256),   # 对中间层特征图进行空间注意力机制的加强。
                                       nn.InstanceNorm2d(256),
                                       nn.Tanh())
         self.down4fc2 = nn.Sequential(nn.Conv2d(256, 256, kernel_size=KERNEL, padding=PADDING),
@@ -179,7 +179,7 @@ class VAE(nn.Module):
                                        nn.InstanceNorm2d(128),
                                        nn.ReLU(inplace=True))
 
-        self.down2fc1 = nn.Sequential(Spatial_Attention(128),
+        self.down2fc1 = nn.Sequential(CBAM_Attention(128),
                                       nn.InstanceNorm2d(128),
                                       nn.Tanh())
         self.down2fc2 = nn.Sequential(nn.Conv2d(128, 128, kernel_size=KERNEL, padding=PADDING),
