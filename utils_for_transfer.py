@@ -163,7 +163,7 @@ class VAE(nn.Module):
                                        nn.ReLU(inplace=True),
                                         )
 
-        self.down4fc1 = nn.Sequential(CBAM_Attention(256),   # 对中间层特征图进行空间注意力机制的加强。
+        self.down4fc1 = nn.Sequential(Spatial_Attention(256),   # 对中间层特征图进行空间注意力机制的加强。
                                       nn.InstanceNorm2d(256),
                                       nn.Tanh())
         self.down4fc2 = nn.Sequential(nn.Conv2d(256, 256, kernel_size=KERNEL, padding=PADDING),
@@ -179,7 +179,7 @@ class VAE(nn.Module):
                                        nn.InstanceNorm2d(128),
                                        nn.ReLU(inplace=True))
 
-        self.down2fc1 = nn.Sequential(CBAM_Attention(128),
+        self.down2fc1 = nn.Sequential(Spatial_Attention(128),
                                       nn.InstanceNorm2d(128),
                                       nn.Tanh())
         self.down2fc2 = nn.Sequential(nn.Conv2d(128, 128, kernel_size=KERNEL, padding=PADDING),
@@ -254,7 +254,7 @@ class VAE(nn.Module):
         attn_output, _ = self.attention(x, x, x)
         attn_out5 = attn_output.view(out5.size(2), out5.size(3), out5.size(0), out5.size(1)).permute(2, 3, 0, 1)
 
-        deout1 = self.deconv_seq1(torch.cat((self.convt1(attn_out5), out4), 1))
+        deout1 = self.deconv_seq1(torch.cat((self.convt1(out5), out4), 1))
         deout1 = self.se4(deout1)
         deout2 = self.deconv_seq2(torch.cat((self.convt2(deout1), out3), 1))
         # deout2 = self.se3(deout2)
