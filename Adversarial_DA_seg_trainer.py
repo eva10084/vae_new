@@ -26,7 +26,7 @@ palette = sns.color_palette("bright", 2)
 init + gan + position_infomation + 3_attention + 2_loss
 '''
 
-EPOCH = 30  # 轮数
+EPOCH = 3  # 轮数
 LR = 1e-3         # 代表Adam优化器的初始学习率
 WEIGHT_DECAY =1e-5   # 代表Adam优化器的权重衰减系数
 WORKERSNUM = 0
@@ -35,8 +35,8 @@ source = 'C0'
 target = 'LGE'
 # prefix = 'experiments'   # 代表实验结果保存的路径
 prefix = 'gdrive/MyDrive/vae/experiments/loss_tSNE'  # Google云盘
-# dataset_dir = 'Dataset/small_Patch192'  # 小数据集
-dataset_dir = 'Dataset/Patch192'  # 大数据集
+dataset_dir = 'Dataset/small_Patch192'  # 小数据集
+# dataset_dir = 'Dataset/Patch192'  # 大数据集
 ValiDir = dataset_dir +'/' +target+'_Vali/'  # 代表验证集数据所在的路径，mri测试集
 SAVE_DIR=prefix+'/save_model'   # 保存参数路径
 
@@ -102,6 +102,7 @@ def show(model,epoch):
 
     road = image_road+str(epoch)+'.png'
     plt.savefig(road)
+    plt.close()
     # plt.show()
 
     # dice = dice_compute(result0, image_to_index(nplab[slice, :, :]))
